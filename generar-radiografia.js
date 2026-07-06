@@ -6,6 +6,23 @@ async function traerPartidoDestacado() {
     headers: { 'x-apisports-key': API_FOOTBALL_KEY }
   });
   const data = await response.json();
+  console.log("--- RESPUESTA CRUDA API-FOOTBALL (Mundial) ---");
+  console.log(JSON.stringify(data.errors), "| resultados:", data.results);
+
+  if (!data.response || data.response.length === 0) {
+    console.log("No se encontraron partidos del Mundial 2026 con este plan. Probando con Premier League como respaldo...");
+    const response2 = await fetch(`https://v3.football.api-sports.io/fixtures?league=39&season=2025&status=FT`, {
+      headers: { 'x-apisports-key': API_FOOTBALL_KEY }
+    });
+    const data2 = await response2.json();
+    console.log("Resultados Premier League:", data2.results);
+    if (!data2.response || data2.response.length === 0) {
+      throw new Error("No se encontraron partidos en ninguna liga de respaldo.");
+    }
+    const partidos2 = data2.response.sort((a, b) => new Date(b.fixture.date) - new Date(a.fixture.date));
+    return partidos2[0];
+  }
+
   const partidos = data.response.sort((a, b) => new Date(b.fixture.date) - new Date(a.fixture.date));
   return partidos[0];
 }
@@ -93,9 +110,8 @@ Nunca pares, nunca expliques.`;
     body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
   });
   const data = await response.json();
-  console.log("--- RESPUESTA CRUDA DE GEMINI ---");
-  console.log(JSON.stringify(data, null, 2));
   if (!data.candidates) {
+    console.log(JSON.stringify(data, null, 2));
     throw new Error("Gemini rechazo la peticion, ver log arriba");
   }
   return data.candidates[0].content.parts[0].text;
