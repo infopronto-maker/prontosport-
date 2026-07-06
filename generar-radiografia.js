@@ -1,7 +1,17 @@
 const API_FOOTBALL_KEY = process.env.API_FOOTBALL_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-async function traerPartidoDestacado() {
+async function async function traerPartidoDestacado() {
+  // Liga 1 = FIFA World Cup, temporada 2026 (cobertura de estadísticas garantizada)
+  const response = await fetch(`https://v3.football.api-sports.io/fixtures?league=1&season=2026&status=FT`, {
+    headers: { 'x-apisports-key': API_FOOTBALL_KEY }
+  });
+  const data = await response.json();
+  // Tomamos el partido terminado más reciente
+  const partidos = data.response.sort((a, b) => new Date(b.fixture.date) - new Date(a.fixture.date));
+  return partidos[0];
+}
+() {
   const hoy = new Date().toISOString().split('T')[0];
   const response = await fetch(`https://v3.football.api-sports.io/fixtures?date=${hoy}`, {
     headers: { 'x-apisports-key': API_FOOTBALL_KEY }
