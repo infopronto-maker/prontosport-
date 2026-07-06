@@ -94,8 +94,10 @@ Nunca pares, nunca expliques.`;
     body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
   });
   const data = await response.json();
+    console.log(JSON.stringify(data, null, 2));
+  if (!data.candidates) { throw new Error("Gemini rechazó la petición, ver log arriba"); }
   return data.candidates[0].content.parts[0].text;
-}
+
 
 async function main() {
   const partido = await traerPartidoDestacado();
