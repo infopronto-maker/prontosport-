@@ -1,6 +1,9 @@
 const API_FOOTBALL_KEY = process.env.API_FOOTBALL_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
+// Ligas prioritarias: Mundial, Liga BetPlay Colombia, Copa Libertadores, Copa Sudamericana
+const LIGAS_PRIORITARIAS = [1, 239, 13, 11];
+
 async function traerPartidoDeHoy() {
   const hoy = new Date().toISOString().split('T')[0];
   const response = await fetch(`https://v3.football.api-sports.io/fixtures?date=${hoy}&status=FT`, {
@@ -10,6 +13,16 @@ async function traerPartidoDeHoy() {
   if (!data.response || data.response.length === 0) {
     throw new Error("No hay partidos terminados hoy todavia.");
   }
+
+  const partidoColombia = data.response.find(p =>
+    p.teams.home.name.toLowerCase().includes("colombia") ||
+    p.teams.away.name.toLowerCase().includes("colombia")
+  );
+  if (partidoColombia) return partidoColombia;
+
+  const partidoPrioritario = data.response.find(p => LIGAS_PRIORITARIAS.includes(p.league.id));
+  if (partidoPrioritario) return partidoPrioritario;
+
   return data.response[0];
 }
 
