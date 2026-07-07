@@ -1,29 +1,32 @@
 const API_FOOTBALL_KEY = process.env.API_FOOTBALL_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-// Ligas prioritarias: Mundial, Liga BetPlay Colombia, Copa Libertadores, Copa Sudamericana
 const LIGAS_PRIORITARIAS = [1, 239, 13, 11];
+const MAX_PIEZAS = 5;
 
-async function traerPartidoDeHoy() {
+async function traerPartidosDelDia() {
   const hoy = new Date().toISOString().split('T')[0];
   const response = await fetch(`https://v3.football.api-sports.io/fixtures?date=${hoy}&status=FT`, {
     headers: { 'x-apisports-key': API_FOOTBALL_KEY }
   });
   const data = await response.json();
   if (!data.response || data.response.length === 0) {
-    throw new Error("No hay partidos terminados hoy todavia.");
+    console.log("No hay partidos terminados hoy todavia.");
+    return [];
   }
 
-  const partidoColombia = data.response.find(p =>
+  const partidosColombia = data.response.filter(p =>
     p.teams.home.name.toLowerCase().includes("colombia") ||
     p.teams.away.name.toLowerCase().includes("colombia")
   );
-  if (partidoColombia) return partidoColombia;
 
-  const partidoPrioritario = data.response.find(p => LIGAS_PRIORITARIAS.includes(p.league.id));
-  if (partidoPrioritario) return partidoPrioritario;
+  const partidosPrioritarios = data.response.filter(p =>
+    LIGAS_PRIORITARIAS.includes(p.league.id) &&
+    !partidosColombia.includes(p)
+  );
 
-  return data.response[0];
+  const seleccionados = [...partidosColombia, ...partidosPrioritarios].slice(0, MAX_PIEZAS);
+  return seleccionados;
 }
 
 function construirJSON(partido) {
@@ -66,13 +69,23 @@ Responde SOLO con el guion, sin titulos ni explicaciones.`;
 }
 
 async function main() {
-  const partido = await traerPartidoDeHoy();
-  const json = construirJSON(partido);
-  console.log("--- PARTIDO ---");
-  console.log(JSON.stringify(json, null, 2));
-  const guion = await generarContenido(json);
-  console.log("--- GUION GENERADO ---");
-  console.log(guion);
+  const partidos = await traerPartidosDelDia();
+
+  if (partidos.length === 0) {
+    console.log("No se genero contenido hoy: sin partidos prioritarios terminados.");
+    return;
+  }
+
+  console.log(`--- ${partidos.length} PARTIDO(S) SELECCIONADO(S) ---`);
+
+  for (const partido of partidos) {
+    const json = construirJSON(partido);
+    console.log("\n=== PARTIDO ===");
+    console.log(JSON.stringify(json, null, 2));
+    const guion = await generarContenido(json);
+    console.log("--- GUION GENERADO ---");
+    console.log(guion);
+  }
 }
 
 main();
