@@ -1,51 +1,19 @@
 const API_FOOTBALL_KEY = process.env.API_FOOTBALL_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-async function traerPartidoDestacado() {
-  const response = await fetch(`https://v3.football.api-sports.io/fixtures?league=1&season=2026&status=FT`, {
+async function traerPartidoDeHoy() {
+  const hoy = new Date().toISOString().split('T')[0];
+  const response = await fetch(`https://v3.football.api-sports.io/fixtures?date=${hoy}&status=FT`, {
     headers: { 'x-apisports-key': API_FOOTBALL_KEY }
   });
   const data = await response.json();
-  console.log("--- RESPUESTA CRUDA API-FOOTBALL (Mundial) ---");
-  console.log(JSON.stringify(data.errors), "| resultados:", data.results);
-
   if (!data.response || data.response.length === 0) {
-    console.log("No se encontraron partidos del Mundial 2026 con este plan. Probando con Premier League como respaldo...");
-    const response2 = await fetch(`https://v3.football.api-sports.io/fixtures?league=39&season=2025&status=FT`, {
-      headers: { 'x-apisports-key': API_FOOTBALL_KEY }
-    });
-    const data2 = await response2.json();
-    console.log("Resultados Premier League:", data2.results);
-    if (!data2.response || data2.response.length === 0) {
-      throw new Error("No se encontraron partidos en ninguna liga de respaldo.");
-    }
-    const partidos2 = data2.response.sort((a, b) => new Date(b.fixture.date) - new Date(a.fixture.date));
-    return partidos2[0];
+    throw new Error("No hay partidos terminados hoy todavia.");
   }
-
-  const partidos = data.response.sort((a, b) => new Date(b.fixture.date) - new Date(a.fixture.date));
-  return partidos[0];
+  return data.response[0];
 }
 
-async function traerEstadisticas(fixtureId) {
-  const response = await fetch(`https://v3.football.api-sports.io/fixtures/statistics?fixture=${fixtureId}`, {
-    headers: { 'x-apisports-key': API_FOOTBALL_KEY }
-  });
-  const data = await response.json();
-  return data.response;
-}
-
-function buscarStat(statsEquipo, nombreStat) {
-  if (!statsEquipo) return "Dato no disponible";
-  const item = statsEquipo.statistics.find(s => s.type === nombreStat);
-  return item && item.value !== null ? item.value : "Dato no disponible";
-}
-
-async function construirJSON(partido) {
-  const stats = await traerEstadisticas(partido.fixture.id);
-  const statsLocal = stats[0];
-  const statsVisitante = stats[1];
-
+function construirJSON(partido) {
   return {
     partido_id: partido.fixture.id,
     local: partido.teams.home.name,
@@ -53,56 +21,23 @@ async function construirJSON(partido) {
     resultado: `${partido.goals.home}-${partido.goals.away}`,
     fecha: new Date(partido.fixture.date).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }),
     estadio: partido.fixture.venue.name || "Dato no disponible",
-    datos: {
-      posesion_local: buscarStat(statsLocal, "Ball Possession"),
-      posesion_visitante: buscarStat(statsVisitante, "Ball Possession"),
-      tiros_local: buscarStat(statsLocal, "Total Shots"),
-      tiros_visitante: buscarStat(statsVisitante, "Total Shots"),
-      tiros_arco_local: buscarStat(statsLocal, "Shots on Goal"),
-      tiros_arco_visitante: buscarStat(statsVisitante, "Shots on Goal"),
-      corners_local: buscarStat(statsLocal, "Corner Kicks"),
-      corners_visitante: buscarStat(statsVisitante, "Corner Kicks"),
-      faltas_local: buscarStat(statsLocal, "Fouls"),
-      faltas_visitante: buscarStat(statsVisitante, "Fouls"),
-      amarillas_local: buscarStat(statsLocal, "Yellow Cards"),
-      amarillas_visitante: buscarStat(statsVisitante, "Yellow Cards"),
-      xg_local: "Dato no disponible",
-      xg_visitante: "Dato no disponible",
-      heat_local: "Dato no disponible",
-      heat_visitante: "Dato no disponible",
-      ppda_local: "Dato no disponible",
-      ppda_visitante: "Dato no disponible",
-      red_pases_clave: "Dato no disponible",
-      dato_record: "Dato no disponible"
-    }
+    liga: partido.league.name,
+    ganador: partido.teams.home.winner ? partido.teams.home.name : (partido.teams.away.winner ? partido.teams.away.name : "Empate")
   };
 }
 
-async function generarRadiografia(json) {
-  const prompt = `Eres el generador de "Pronto Sport Data Feed". Tu única función es convertir datos JSON de un partido en 9 piezas de contenido estandarizadas, sin opinión, listas para uso B2B.
+async function generarContenido(json) {
+  const prompt = `Eres el generador de contenido de "Pronto Sport". Conviertes datos de un partido en un guion corto para video de TikTok, tono analítico y serio, sin humor.
 
-REGLAS INVIOLABLES:
-1. CERO INVENTO. Solo usas el JSON que te doy.
-2. CERO OPINIÓN. Solo describes el dato.
-3. Si un dato viene como "Dato no disponible", escribe exactamente eso y continúa. Nunca inventes un valor.
-4. FORMATO ATÓMICO. Cada pieza es independiente, mismo orden siempre.
-5. SALIDA: Lista numerada del 1 al 9. Cada ítem es el guion de 1 pieza.
+REGLAS:
+1. Solo usas los datos del JSON, nunca inventas cifras que no esten ahi.
+2. 80-100 palabras en total.
+3. Estructura: dato del resultado, contexto breve de por que importa, y un gancho de participacion especifico al final (pregunta o invitacion a opinar sobre una decision tactica o el resultado).
 
 INPUT:
 ${JSON.stringify(json, null, 2)}
 
-SALIDA OBLIGATORIA - 9 PIEZAS:
-1. TITLE CARD: Partido. [local] [resultado] [visitante]. Fecha [fecha]. Estadio [estadio]. Pronto Sport Data.
-2. POSESIÓN: Posesión. [local] [posesion_local]. [visitante] [posesion_visitante].
-3. TIROS: Remates. [local] [tiros_local] ([tiros_arco_local] al arco). [visitante] [tiros_visitante] ([tiros_arco_visitante] al arco).
-4. CORNERS: Tiros de esquina. [local] [corners_local]. [visitante] [corners_visitante].
-5. FALTAS: Faltas cometidas. [local] [faltas_local]. [visitante] [faltas_visitante].
-6. TARJETAS: Tarjetas amarillas. [local] [amarillas_local]. [visitante] [amarillas_visitante].
-7. XG_HEATMAP_PPDA: Analítica avanzada (xG, mapa de calor, PPDA). Dato no disponible en esta edición.
-8. OUTRO_BRAND: Data por Pronto Sport. Feed completo disponible bajo licencia.
-9. RADIOGRAFÍA_60S: Junta las líneas 1 a 6 en un solo párrafo, separadas por punto, ignorando la línea 7.
-
-Nunca pares, nunca expliques.`;
+Responde SOLO con el guion, sin titulos ni explicaciones.`;
 
   const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
     method: 'POST',
@@ -118,14 +53,13 @@ Nunca pares, nunca expliques.`;
 }
 
 async function main() {
-  const partido = await traerPartidoDestacado();
-  console.log("Partido elegido:", partido.teams.home.name, "vs", partido.teams.away.name);
-  const json = await construirJSON(partido);
-  console.log("--- JSON CONSTRUIDO ---");
+  const partido = await traerPartidoDeHoy();
+  const json = construirJSON(partido);
+  console.log("--- PARTIDO ---");
   console.log(JSON.stringify(json, null, 2));
-  const radiografia = await generarRadiografia(json);
-  console.log("--- RADIOGRAFÍA GENERADA ---");
-  console.log(radiografia);
+  const guion = await generarContenido(json);
+  console.log("--- GUION GENERADO ---");
+  console.log(guion);
 }
 
 main();
