@@ -1,8 +1,9 @@
-
 name: Test Conexion API Futbol
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '0 5 * * *'
 
 jobs:
   test:
