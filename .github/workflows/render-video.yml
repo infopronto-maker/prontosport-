@@ -1,10 +1,19 @@
+
 name: Renderizar Video
 
 on:
+  workflow_run:
+    workflows: ["Test Conexion API Futbol"]
+    types:
+      - completed
   workflow_dispatch: {}
+
+permissions:
+  contents: write
 
 jobs:
   render:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -23,11 +32,12 @@ jobs:
         run: npx remotion browser ensure
 
       - name: Renderizar video
-        run: npx remotion render src/index.ts ResumenTactico out/video.mp4
+        run: npx remotion render src/index.ts ResumenTactico video-preview.mp4
 
-      - name: Subir video como artefacto
-        uses: actions/upload-artifact@v4
-        with:
-          name: video-resumen-tactico
-          path: out/video.mp4
-          retention-days: 14
+      - name: Publicar video en GitHub Pages (link directo, siempre la misma URL)
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add video-preview.mp4
+          git commit -m "Video automático diario" || echo "Sin cambios"
+          git push
