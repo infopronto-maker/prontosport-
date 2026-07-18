@@ -25,6 +25,6 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git add data/
+          git add data/ 2>/dev/null || echo "No hay carpeta data, nada que guardar hoy"
           git commit -m "Datos del dia" || echo "Sin partidos nuevos hoy"
           git push
