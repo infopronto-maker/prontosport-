@@ -1,5 +1,6 @@
 const API_FOOTBALL_KEY = process.env.API_FOOTBALL_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const fs = require('fs');
 
 const LIGAS_PRIORITARIAS = [1, 239, 13, 11];
 const MAX_PIEZAS = 5;
@@ -27,6 +28,40 @@ async function traerPartidosDelDia() {
 
   const seleccionados = [...partidosColombia, ...partidosPrioritarios].slice(0, MAX_PIEZAS);
   return seleccionados;
+}
+
+async function traerEstadisticas(fixtureId) {
+  const response = await fetch(`https://v3.football.api-sports.io/fixtures/statistics?fixture=${fixtureId}`, {
+    headers: { 'x-apisports-key': API_FOOTBALL_KEY }
+  });
+  const data = await response.json();
+
+  if (!data.response || data.response.length < 2) {
+    return null;
+  }
+
+  const buscarStat = (statsEquipo, nombre) => {
+    const item = statsEquipo.find(s => s.type === nombre);
+    if (!item || item.value === null || item.value === undefined) return null;
+    if (typeof item.value === 'string' && item.value.includes('%')) {
+      return parseInt(item.value.replace('%', ''), 10);
+    }
+    return item.value;
+  };
+
+  const statsLocal = data.response[0].statistics;
+  const statsVisitante = data.response[1].statistics;
+
+  return {
+    posesionA: buscarStat(statsLocal, 'Ball Possession'),
+    posesionB: buscarStat(statsVisitante, 'Ball Possession'),
+    rematesA: buscarStat(statsLocal, 'Total Shots'),
+    rematesB: buscarStat(statsVisitante, 'Total Shots'),
+    aPuertaA: buscarStat(statsLocal, 'Shots on Goal'),
+    aPuertaB: buscarStat(statsVisitante, 'Shots on Goal'),
+    cornersA: buscarStat(statsLocal, 'Corner Kicks'),
+    cornersB: buscarStat(statsVisitante, 'Corner Kicks'),
+  };
 }
 
 function construirJSON(partido) {
@@ -68,6 +103,46 @@ Responde SOLO con el guion, sin titulos ni explicaciones.`;
   return data.candidates[0].content.parts[0].text;
 }
 
+async function generarGanchoFinal(json) {
+  const prompt = `Basado en este partido, escribe UNA sola pregunta táctica corta (máximo 12 palabras) para invitar a la gente a comentar en un video de TikTok. Tono analítico, no humor. Solo la pregunta, nada más.
+
+INPUT:
+${JSON.stringify(json, null, 2)}`;
+
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+  });
+  const data = await response.json();
+  if (!data.candidates) {
+    return "¿Qué opinas de este resultado?";
+  }
+  return data.candidates[0].content.parts[0].text.trim();
+}
+
+function construirDatosVideo(json, stats, ganchoFinal) {
+  const [marcadorA, marcadorB] = json.resultado.split('-').map(Number);
+  return {
+    competencia: json.liga.toUpperCase(),
+    fecha: json.fecha,
+    equipoA: json.local.toUpperCase(),
+    equipoB: json.visitante.toUpperCase(),
+    posesionA: stats?.posesionA ?? 0,
+    posesionB: stats?.posesionB ?? 0,
+    rematesA: stats?.rematesA ?? 0,
+    rematesB: stats?.rematesB ?? 0,
+    aPuertaA: stats?.aPuertaA ?? 0,
+    aPuertaB: stats?.aPuertaB ?? 0,
+    cornersA: stats?.cornersA ?? 0,
+    cornersB: stats?.cornersB ?? 0,
+    marcadorA: marcadorA,
+    marcadorB: marcadorB,
+    estadio: json.estadio,
+    ganchoFinal: ganchoFinal,
+  };
+}
+
 async function main() {
   const partidos = await traerPartidosDelDia();
 
@@ -78,14 +153,33 @@ async function main() {
 
   console.log(`--- ${partidos.length} PARTIDO(S) SELECCIONADO(S) ---`);
 
+  const resultados = [];
+  let datosParaVideo = null;
+
   for (const partido of partidos) {
     const json = construirJSON(partido);
     console.log("\n=== PARTIDO ===");
     console.log(JSON.stringify(json, null, 2));
+
     const guion = await generarContenido(json);
     console.log("--- GUION GENERADO ---");
     console.log(guion);
+
+    const stats = await traerEstadisticas(json.partido_id);
+    const ganchoFinal = await generarGanchoFinal(json);
+
+    resultados.push({ ...json, guion, stats, ganchoFinal });
+
+    if (!datosParaVideo) {
+      datosParaVideo = construirDatosVideo(json, stats, ganchoFinal);
+    }
   }
+
+  fs.mkdirSync('data', { recursive: true });
+  fs.writeFileSync('data/contenido-hoy.json', JSON.stringify(resultados, null, 2));
+  fs.writeFileSync('data/partido-video.json', JSON.stringify(datosParaVideo, null, 2));
+
+  console.log("\nArchivos guardados: data/contenido-hoy.json y data/partido-video.json");
 }
 
 main();
