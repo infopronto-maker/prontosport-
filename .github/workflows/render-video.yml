@@ -16,21 +16,36 @@ jobs:
       - name: Descargar código
         uses: actions/checkout@v4
 
+      - name: Verificar si hay datos de partido hoy
+        id: check
+        run: |
+          if [ -f "data/partido-video.json" ]; then
+            echo "existe=si" >> "$GITHUB_OUTPUT"
+          else
+            echo "existe=no" >> "$GITHUB_OUTPUT"
+            echo "No hay partido-video.json todavia — no hubo partido prioritario hoy. Nada que renderizar."
+          fi
+
       - name: Configurar Node
+        if: steps.check.outputs.existe == 'si'
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
       - name: Instalar dependencias
+        if: steps.check.outputs.existe == 'si'
         run: npm install
 
       - name: Instalar dependencias del sistema (Chrome headless)
+        if: steps.check.outputs.existe == 'si'
         run: npx remotion browser ensure
 
       - name: Renderizar video con datos reales del dia
+        if: steps.check.outputs.existe == 'si'
         run: npx remotion render src/index.ts ResumenTactico video-preview.mp4 --props="./data/partido-video.json"
 
       - name: Subir video como artefacto
+        if: steps.check.outputs.existe == 'si'
         uses: actions/upload-artifact@v4
         with:
           name: video-resumen-tactico
