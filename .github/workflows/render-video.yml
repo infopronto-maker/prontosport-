@@ -28,7 +28,7 @@ jobs:
         run: npx remotion browser ensure
 
       - name: Renderizar video con datos reales del dia
-        run: npx remotion render src/index.ts ResumenTactico video-preview.mp4 --props="data/partido-video.json"
+        run: npx remotion render src/index.ts ResumenTactico video-preview.mp4 --props="./data/partido-video.json"
 
       - name: Subir video como artefacto
         uses: actions/upload-artifact@v4
