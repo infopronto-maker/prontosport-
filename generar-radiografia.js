@@ -6,22 +6,42 @@ const LIGAS_PRIORITARIAS = [1, 239, 13, 11];
 const MAX_PIEZAS = 5;
 
 async function traerPartidosDelDia() {
-  const hoy = new Date().toISOString().split('T')[0];
-  const response = await fetch(`https://v3.football.api-sports.io/fixtures?date=${hoy}&status=FT`, {
-    headers: { 'x-apisports-key': API_FOOTBALL_KEY }
-  });
-  const data = await response.json();
-  if (!data.response || data.response.length === 0) {
-    console.log("No hay partidos terminados hoy todavia.");
+  const fechas = [];
+  for (let i = 0; i < 3; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    fechas.push(d.toISOString().split('T')[0]);
+  }
+
+  let todosLosPartidos = [];
+  for (const fecha of fechas) {
+    const response = await fetch(`https://v3.football.api-sports.io/fixtures?date=${fecha}&status=FT`, {
+      headers: { 'x-apisports-key': API_FOOTBALL_KEY }
+    });
+    const data = await response.json();
+    if (data.response && data.response.length > 0) {
+      todosLosPartidos = todosLosPartidos.concat(data.response);
+    }
+  }
+
+  if (todosLosPartidos.length === 0) {
+    console.log("No hay partidos terminados en los ultimos 3 dias.");
     return [];
   }
 
-  const partidosColombia = data.response.filter(p =>
+  const vistos = new Set();
+  todosLosPartidos = todosLosPartidos.filter(p => {
+    if (vistos.has(p.fixture.id)) return false;
+    vistos.add(p.fixture.id);
+    return true;
+  });
+
+  const partidosColombia = todosLosPartidos.filter(p =>
     p.teams.home.name.toLowerCase().includes("colombia") ||
     p.teams.away.name.toLowerCase().includes("colombia")
   );
 
-  const partidosPrioritarios = data.response.filter(p =>
+  const partidosPrioritarios = todosLosPartidos.filter(p =>
     LIGAS_PRIORITARIAS.includes(p.league.id) &&
     !partidosColombia.includes(p)
   );
@@ -147,7 +167,7 @@ async function main() {
   const partidos = await traerPartidosDelDia();
 
   if (partidos.length === 0) {
-    console.log("No se genero contenido hoy: sin partidos prioritarios terminados.");
+    console.log("No se genero contenido: sin partidos prioritarios terminados en los ultimos 3 dias.");
     return;
   }
 
@@ -183,3 +203,4 @@ async function main() {
 }
 
 main();
+
