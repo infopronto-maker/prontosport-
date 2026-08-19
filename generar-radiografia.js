@@ -2,10 +2,40 @@ const API_FOOTBALL_KEY = process.env.API_FOOTBALL_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const fs = require('fs');
 
-const LIGAS_PRIORITARIAS = [1, 239, 13, 11];
 const MAX_PIEZAS = 5;
 
+const LIGAS_OBJETIVO = [
+  { nombre: 'World Cup', pais: null },
+  { nombre: 'Liga BetPlay Dimayor', pais: 'Colombia' },
+  { nombre: 'Copa Libertadores', pais: null },
+  { nombre: 'Copa Sudamericana', pais: null },
+];
+
+async function resolverIdsLigas() {
+  const ids = [];
+  for (const objetivo of LIGAS_OBJETIVO) {
+    const params = new URLSearchParams({ name: objetivo.nombre });
+    if (objetivo.pais) params.set('country', objetivo.pais);
+
+    const response = await fetch(`https://v3.football.api-sports.io/leagues?${params.toString()}`, {
+      headers: { 'x-apisports-key': API_FOOTBALL_KEY }
+    });
+    const data = await response.json();
+
+    if (data.response && data.response.length > 0) {
+      const liga = data.response[0].league;
+      console.log(`Liga encontrada: "${objetivo.nombre}" -> ID ${liga.id} (${liga.name})`);
+      ids.push(liga.id);
+    } else {
+      console.log(`No se encontro liga para: "${objetivo.nombre}" (${objetivo.pais || 'sin pais'})`);
+    }
+  }
+  return ids;
+}
+
 async function traerPartidosDelDia() {
+  const ligasIds = await resolverIdsLigas();
+
   const fechas = [];
   for (let i = 0; i < 3; i++) {
     const d = new Date();
@@ -42,7 +72,7 @@ async function traerPartidosDelDia() {
   );
 
   const partidosPrioritarios = todosLosPartidos.filter(p =>
-    LIGAS_PRIORITARIAS.includes(p.league.id) &&
+    ligasIds.includes(p.league.id) &&
     !partidosColombia.includes(p)
   );
 
@@ -203,4 +233,5 @@ async function main() {
 }
 
 main();
+
 
