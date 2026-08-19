@@ -31,7 +31,8 @@ async function resolverIdsLigas() {
       console.log(`Liga encontrada: "${objetivo.busqueda}" -> ID ${liga.id} (${liga.name}, ${elegido.country?.name})`);
       ids.push(liga.id);
     } else {
-      console.log(`No se encontro liga para: "${objetivo.busqueda}"`);
+      console.log(`No se encontro liga para: "${objetivo.busqueda}" — RESPUESTA CRUDA DE LA API:`);
+      console.log(JSON.stringify(data, null, 2));
     }
   }
   return ids;
