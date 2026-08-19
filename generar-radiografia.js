@@ -5,17 +5,16 @@ const fs = require('fs');
 const MAX_PIEZAS = 5;
 
 const LIGAS_OBJETIVO = [
-  { nombre: 'World Cup', pais: null },
-  { nombre: 'Liga BetPlay Dimayor', pais: 'Colombia' },
-  { nombre: 'Copa Libertadores', pais: null },
-  { nombre: 'Copa Sudamericana', pais: null },
+  { busqueda: 'World Cup', pais: null },
+  { busqueda: 'Primera A', pais: 'Colombia' },
+  { busqueda: 'Libertadores', pais: null },
+  { busqueda: 'Sudamericana', pais: null },
 ];
 
 async function resolverIdsLigas() {
   const ids = [];
   for (const objetivo of LIGAS_OBJETIVO) {
-    const params = new URLSearchParams({ name: objetivo.nombre });
-    if (objetivo.pais) params.set('country', objetivo.pais);
+    const params = new URLSearchParams({ search: objetivo.busqueda });
 
     const response = await fetch(`https://v3.football.api-sports.io/leagues?${params.toString()}`, {
       headers: { 'x-apisports-key': API_FOOTBALL_KEY }
@@ -23,11 +22,16 @@ async function resolverIdsLigas() {
     const data = await response.json();
 
     if (data.response && data.response.length > 0) {
-      const liga = data.response[0].league;
-      console.log(`Liga encontrada: "${objetivo.nombre}" -> ID ${liga.id} (${liga.name})`);
+      let elegido = data.response[0];
+      if (objetivo.pais) {
+        const match = data.response.find(r => r.country?.name === objetivo.pais);
+        if (match) elegido = match;
+      }
+      const liga = elegido.league;
+      console.log(`Liga encontrada: "${objetivo.busqueda}" -> ID ${liga.id} (${liga.name}, ${elegido.country?.name})`);
       ids.push(liga.id);
     } else {
-      console.log(`No se encontro liga para: "${objetivo.nombre}" (${objetivo.pais || 'sin pais'})`);
+      console.log(`No se encontro liga para: "${objetivo.busqueda}"`);
     }
   }
   return ids;
@@ -233,5 +237,3 @@ async function main() {
 }
 
 main();
-
-
