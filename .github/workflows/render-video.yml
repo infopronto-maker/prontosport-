@@ -61,11 +61,23 @@ jobs:
           FECHA=$(date +%Y-%m-%d)
           NOMBRE_ARCHIVO="resumen-tactico-${FECHA}-${GITHUB_RUN_ID}.mp4"
 
-          curl -X POST \
+          RESPUESTA=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST \
             "${SUPABASE_URL}/storage/v1/object/pronto-videos/${NOMBRE_ARCHIVO}" \
             -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+            -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
             -H "Content-Type: video/mp4" \
-            --data-binary "@video-preview.mp4"
+            --data-binary "@video-preview.mp4")
+
+          STATUS=$(echo "$RESPUESTA" | grep "HTTP_STATUS" | cut -d: -f2)
+          BODY=$(echo "$RESPUESTA" | sed '/HTTP_STATUS/d')
+
+          echo "Respuesta de Supabase: $BODY"
+          echo "Codigo HTTP: $STATUS"
+
+          if [ "$STATUS" != "200" ]; then
+            echo "ERROR: la subida a Supabase fallo (codigo $STATUS). Revisar arriba."
+            exit 1
+          fi
 
           echo ""
           echo "=== VIDEO DISPONIBLE EN: ==="
