@@ -132,6 +132,46 @@ function construirJSON(partido) {
   };
 }
 
+// --- NUEVO: espera simple ---
+function esperar(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// --- NUEVO: llamada a Gemini con reintento automatico ante error 429 (cuota) ---
+async function llamarGemini(prompt, intentosMax = 4) {
+  for (let intento = 1; intento <= intentosMax; intento++) {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+    });
+    const data = await response.json();
+
+    if (data.candidates) {
+      return data.candidates[0].content.parts[0].text;
+    }
+
+    const esCuota = data.error?.code === 429 || /quota|429|RESOURCE_EXHAUSTED/i.test(JSON.stringify(data.error || {}));
+
+    if (!esCuota || intento === intentosMax) {
+      console.log("Gemini no devolvio candidates. Respuesta completa:");
+      console.log(JSON.stringify(data, null, 2));
+      throw new Error("Gemini rechazo la peticion, ver log arriba");
+    }
+
+    // Buscar el retryDelay real que manda Google (ej. "51s")
+    let esperaMs = 60000; // default 60s si no viene el dato
+    const detalle = data.error?.details?.find(d => d['@type']?.includes('RetryInfo'));
+    if (detalle?.retryDelay) {
+      const segundos = parseInt(detalle.retryDelay.replace('s', ''), 10);
+      if (!isNaN(segundos)) esperaMs = (segundos + 3) * 1000; // +3s de margen
+    }
+
+    console.log(`Gemini: limite de cuota alcanzado (intento ${intento}/${intentosMax}). Esperando ${Math.round(esperaMs / 1000)}s antes de reintentar...`);
+    await esperar(esperaMs);
+  }
+}
+
 async function generarContenido(json) {
   const prompt = `Eres el generador de contenido de "Pronto Sport". Conviertes datos de un partido en un guion corto para video de TikTok, tono analítico y serio, sin humor.
 
@@ -145,17 +185,7 @@ ${JSON.stringify(json, null, 2)}
 
 Responde SOLO con el guion, sin titulos ni explicaciones.`;
 
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-  });
-  const data = await response.json();
-  if (!data.candidates) {
-    console.log(JSON.stringify(data, null, 2));
-    throw new Error("Gemini rechazo la peticion, ver log arriba");
-  }
-  return data.candidates[0].content.parts[0].text;
+  return await llamarGemini(prompt);
 }
 
 async function generarGanchoFinal(json) {
@@ -164,16 +194,13 @@ async function generarGanchoFinal(json) {
 INPUT:
 ${JSON.stringify(json, null, 2)}`;
 
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-  });
-  const data = await response.json();
-  if (!data.candidates) {
+  try {
+    const texto = await llamarGemini(prompt);
+    return texto.trim();
+  } catch (e) {
+    console.log("No se pudo generar gancho final, se usa uno por defecto:", e.message);
     return "¿Qué opinas de este resultado?";
   }
-  return data.candidates[0].content.parts[0].text.trim();
 }
 
 function construirDatosVideo(json, stats, ganchoFinal) {
@@ -237,4 +264,8 @@ async function main() {
   console.log("\nArchivos guardados: data/contenido-hoy.json y data/partido-video.json");
 }
 
-main();
+main().catch(error => {
+  console.error("Error fatal:", error);
+  process.exitCode = 1;
+});
+
