@@ -1,0 +1,76 @@
+[
+  {
+    "partido_id": 1549739,
+    "local": "Independiente Medellin",
+    "visitante": "Cucuta",
+    "resultado": "0-1",
+    "fecha": "23 de agosto de 2026",
+    "estadio": "Estadio Atanasio Girardot",
+    "liga": "Primera A",
+    "ganador": "Cucuta",
+    "guion": "El 23 de agosto de 2026, Cúcuta derrotó 0-1 a Independiente Medellín en el Estadio Atanasio Girardot por la Primera A. Este resultado representa un revés significativo para el local, marcando un punto de inflexión en la liga. La capacidad de Cúcuta para imponerse como visitante evidencia una solidez táctica notable. Para Medellín, la derrota en casa genera interrogantes sobre su consistencia y el planteamiento estratégico en este encuentro. La tabla de posiciones sentirá el impacto de este inesperado desenlace. ¿Cuál fue, según tu análisis, la clave táctica que decantó este 0-1 a favor del visitante?",
+    "stats": null,
+    "ganchoFinal": "Medellín en casa: ¿Falta de gol o mérito defensivo de Cúcuta?"
+  },
+  {
+    "partido_id": 1549734,
+    "local": "Alianza Valledupar",
+    "visitante": "Deportivo Pereira",
+    "resultado": "0-0",
+    "fecha": "22 de agosto de 2026",
+    "estadio": "Estadio Armando Maestre Pavajeau",
+    "liga": "Primera A",
+    "ganador": "Empate",
+    "guion": "En la Primera A, Alianza Valledupar y Deportivo Pereira empataron sin goles, 0-0, el 22 de agosto en el Estadio Armando Maestre Pavajeau. Un marcador que refleja la paridad, pero también la falta de contundencia de ambos equipos. Este 0-0 deja a Alianza Valledupar sin sumar de a tres en casa y a Deportivo Pereira con un punto valioso a domicilio, aunque sin resolver sus desafíos ofensivos. ¿Consideran que la estrategia defensiva predominó o que faltó creatividad en el mediocampo?",
+    "stats": {
+      "posesionA": 54,
+      "posesionB": 46,
+      "rematesA": 20,
+      "rematesB": 10,
+      "aPuertaA": 5,
+      "aPuertaB": 5,
+      "cornersA": 4,
+      "cornersB": 3
+    },
+    "ganchoFinal": "¿Fue solidez defensiva o falta de ataque lo que definió el 0-0?"
+  },
+  {
+    "partido_id": 1549733,
+    "local": "Águilas Doradas",
+    "visitante": "Millonarios",
+    "resultado": "1-1",
+    "fecha": "22 de agosto de 2026",
+    "estadio": "Estadio Cincuentenario",
+    "liga": "Primera A",
+    "ganador": "Empate",
+    "guion": "Águilas Doradas y Millonarios empataron 1-1 el 22 de agosto en el Estadio Cincuentenario, un resultado que marca un punto de inflexión en la Primera A. Para Millonarios, este empate representa una oportunidad perdida de sumar tres puntos vitales, complicando su ascenso en la tabla. Águilas Doradas, por su parte, consigue un valioso punto en casa frente a un rival directo. Este reparto de unidades tiene implicaciones directas en la pugna por las primeras posiciones de la liga. Analizando el desenlace, ¿este empate es un tropiezo para Millonarios o un logro táctico para Águilas Doradas?",
+    "stats": null,
+    "ganchoFinal": "¿Qué ajuste táctico faltó para que un equipo ganara el 1-1?"
+  },
+  {
+    "partido_id": 1549736,
+    "local": "Deportes Tolima",
+    "visitante": "Bucaramanga",
+    "resultado": "0-0",
+    "fecha": "22 de agosto de 2026",
+    "estadio": "Estadio Manuel Murillo Toro",
+    "liga": "Primera A",
+    "ganador": "Empate",
+    "guion": "Deportes Tolima y Bucaramanga empataron 0-0 en el Estadio Manuel Murillo Toro, en un encuentro de Primera A disputado el 22 de agosto de 2026. Este resultado, un reflejo de una intensa batalla táctica sin la contundencia ofensiva necesaria por parte de ninguno, deja a ambos equipos con sensaciones encontradas. Un punto sumado, pero dos perdidos en la carrera por posicionarse en la liga. El cero en el marcador sugiere que las defensas prevalecieron o las ofensivas carecieron de ideas. ¿Cuál fue, para ustedes, la principal razón de este 0-0? ¿La solidez defensiva o la falta de puntería?",
+    "stats": null,
+    "ganchoFinal": "¿Fue la defensa clave o el ataque insuficiente en el 0-0?"
+  },
+  {
+    "partido_id": 1549742,
+    "local": "Santa Fe",
+    "visitante": "America de Cali",
+    "resultado": "0-0",
+    "fecha": "22 de agosto de 2026",
+    "estadio": "Estadio Nemesio Camacho El Campin",
+    "liga": "Primera A",
+    "ganador": "Empate",
+    "guion": "Santa Fe y América de Cali empataron 0-0 en El Campín el 22 de agosto de 2026 por la Primera A. Este resultado, un reparto de puntos sin goles, subraya una fuerte contención táctica o la incapacidad ofensiva de ambos equipos. Para la Primera A, un empate sin goles representa la solidez defensiva como prioridad, o bien una alarmante falta de precisión en el último tercio. Es un punto ganado para algunos, una oportunidad perdida para otros en la carrera por la tabla. ¿Fue este 0-0 un reflejo de una estrategia defensiva exitosa o una clara deficiencia en la creación de juego?",
+    "stats": null,
+    "ganchoFinal": "¿Defensas sobresalieron o faltó creatividad ofensiva?"
+  }
+]
