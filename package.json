@@ -7,19 +7,17 @@
     "start": "node generar-guion.js && node generar-radiografia.js",
     "guion": "node generar-guion.js",
     "radiografia": "node generar-radiografia.js",
-    "video": "cd src && npx remotion render ResumenTactico ../output/video.mp4"
+    "video": "npx remotion render src/ResumenTactico.tsx output/video.mp4"
   },
   "dependencies": {
     "dotenv": "^16.4.5",
-    "remotion": "^4.0.0",
-    "@remotion/react": "^4.0.0",
-    "@remotion/renderer": "^4.0.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "remotion": "3.3.22",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
-    "@types/react": "^18.3.5",
-    "typescript": "^5.5.4"
+    "@types/react": "^18.2.0",
+    "typescript": "^5.0.0"
   },
   "keywords": [
     "deportes",
