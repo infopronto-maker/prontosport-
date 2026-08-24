@@ -1,5 +1,5 @@
 // ============================================================
-// render.js - Renderiza el video con Remotion (VERSIÓN SIMPLIFICADA)
+// render.js - Renderiza el video con Remotion
 // ============================================================
 
 const { bundle } = require('@remotion/bundler');
@@ -19,11 +19,14 @@ async function renderVideo() {
 
     const outputPath = path.join(outputDir, 'video.mp4');
 
-    // 2. Configurar Remotion
-    const entry = path.join(__dirname, 'ResumenTactico.tsx');
+    // 2. Configurar Remotion - USANDO index.tsx como punto de entrada
+    const entry = path.join(__dirname, 'index.tsx');
+    console.log(`📂 Usando punto de entrada: ${entry}`);
+
     const bundled = await bundle(entry, () => undefined);
 
     // 3. Renderizar el video
+    console.log('🎞️ Renderizando video...');
     await renderMedia({
       codec: 'h264',
       composition: 'ResumenTactico',
