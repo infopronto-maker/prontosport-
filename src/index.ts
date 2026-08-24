@@ -1,4 +1,4 @@
-import { Composition } from 'remotion';
+import { registerRoot, Composition } from 'remotion';
 import { ResumenTactico } from './ResumenTactico';
 
 export const RemotionRoot: React.FC = () => {
@@ -32,3 +32,5 @@ export const RemotionRoot: React.FC = () => {
     />
   );
 };
+
+registerRoot(RemotionRoot);
