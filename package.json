@@ -7,11 +7,12 @@
     "start": "node generar-guion.js && node generar-radiografia.js",
     "guion": "node generar-guion.js",
     "radiografia": "node generar-radiografia.js",
-    "video": "npx remotion render src/ResumenTactico.tsx output/video.mp4"
+    "video": "node src/render.js"
   },
   "dependencies": {
     "dotenv": "^16.4.5",
-    "remotion": "3.3.22",
+    "@remotion/bundler": "3.3.22",
+    "@remotion/renderer": "3.3.22",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
