@@ -266,11 +266,11 @@ export const ResumenTactico: React.FC<Props> = (props) => {
 
   return (
     <AbsoluteFill style={{ opacity: fadeOut, fontFamily: 'Arial, sans-serif' }}>
-      <Sequence from={0} durationInFrames={90}>
-        <EscenaApertura {...props} />
-      </Sequence>
-      <Sequence from={90} durationInFrames={120}>
+      <Sequence from={0} durationInFrames={120}>
         <EscenaMarcador {...props} />
+      </Sequence>
+      <Sequence from={120} durationInFrames={90}>
+        <EscenaApertura {...props} />
       </Sequence>
       <Sequence from={210} durationInFrames={180}>
         <EscenaTitular guion={props.guion} />
