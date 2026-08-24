@@ -1,18 +1,36 @@
 {
-  "name": "prontosport-video",
-  "version": "1.0.0",
-  "private": true,
+  "name": "prontosport",
+  "version": "2.0.0",
+  "description": "Generador automático de videos deportivos con IA",
+  "main": "generar-guion.js",
   "scripts": {
-    "render": "remotion render src/index.ts ResumenTactico out/video.mp4"
+    "start": "node generar-guion.js && node generar-radiografia.js",
+    "guion": "node generar-guion.js",
+    "radiografia": "node generar-radiografia.js",
+    "video": "cd src && npx remotion render ResumenTactico ../output/video.mp4"
   },
   "dependencies": {
-    "@remotion/cli": "4.0.486",
-    "remotion": "4.0.486",
-    "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "dotenv": "^16.4.5",
+    "remotion": "^4.0.0",
+    "@remotion/react": "^4.0.0",
+    "@remotion/renderer": "^4.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "@types/react": "18.3.1",
-    "typescript": "5.5.4"
+    "@types/react": "^18.3.5",
+    "typescript": "^5.5.4"
+  },
+  "keywords": [
+    "deportes",
+    "video",
+    "ia",
+    "gemini",
+    "remotion"
+  ],
+  "author": "infopronto-maker",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
