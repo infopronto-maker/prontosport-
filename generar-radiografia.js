@@ -132,12 +132,10 @@ function construirJSON(partido) {
   };
 }
 
-// --- NUEVO: espera simple ---
 function esperar(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// --- NUEVO: llamada a Gemini con reintento automatico ante error 429 (cuota) ---
 async function llamarGemini(prompt, intentosMax = 4) {
   for (let intento = 1; intento <= intentosMax; intento++) {
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
@@ -159,12 +157,11 @@ async function llamarGemini(prompt, intentosMax = 4) {
       throw new Error("Gemini rechazo la peticion, ver log arriba");
     }
 
-    // Buscar el retryDelay real que manda Google (ej. "51s")
-    let esperaMs = 60000; // default 60s si no viene el dato
+    let esperaMs = 60000;
     const detalle = data.error?.details?.find(d => d['@type']?.includes('RetryInfo'));
     if (detalle?.retryDelay) {
       const segundos = parseInt(detalle.retryDelay.replace('s', ''), 10);
-      if (!isNaN(segundos)) esperaMs = (segundos + 3) * 1000; // +3s de margen
+      if (!isNaN(segundos)) esperaMs = (segundos + 3) * 1000;
     }
 
     console.log(`Gemini: limite de cuota alcanzado (intento ${intento}/${intentosMax}). Esperando ${Math.round(esperaMs / 1000)}s antes de reintentar...`);
@@ -203,7 +200,7 @@ ${JSON.stringify(json, null, 2)}`;
   }
 }
 
-function construirDatosVideo(json, stats, ganchoFinal) {
+function construirDatosVideo(json, stats, ganchoFinal, guion) {
   const [marcadorA, marcadorB] = json.resultado.split('-').map(Number);
   return {
     competencia: json.liga.toUpperCase(),
@@ -222,6 +219,7 @@ function construirDatosVideo(json, stats, ganchoFinal) {
     marcadorB: marcadorB,
     estadio: json.estadio,
     ganchoFinal: ganchoFinal,
+    guion: guion,
   };
 }
 
@@ -253,7 +251,7 @@ async function main() {
     resultados.push({ ...json, guion, stats, ganchoFinal });
 
     if (!datosParaVideo) {
-      datosParaVideo = construirDatosVideo(json, stats, ganchoFinal);
+      datosParaVideo = construirDatosVideo(json, stats, ganchoFinal, guion);
     }
   }
 
@@ -268,4 +266,3 @@ main().catch(error => {
   console.error("Error fatal:", error);
   process.exitCode = 1;
 });
-
