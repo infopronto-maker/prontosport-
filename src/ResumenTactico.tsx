@@ -4,19 +4,22 @@ import {
   Sequence,
   useCurrentFrame,
   useVideoConfig,
-  interpolate,
   spring,
+  interpolate,
 } from 'remotion';
 
-// ---- DATOS DE EJEMPLO ----
-// Estos datos se reemplazarán más adelante por los que genera
-// generar-radiografia.js. Por ahora están fijos para poder
-// renderizar y ver el resultado.
-export type PartidoData = {
+const DORADO = '#FFC933';
+const FONDO = '#05100C';
+const TEXTO = '#E8F5EE';
+const TEXTO_MUTED = '#9BB5A6';
+
+type Props = {
   competencia: string;
   fecha: string;
   equipoA: string;
   equipoB: string;
+  marcadorA: number;
+  marcadorB: number;
   posesionA: number;
   posesionB: number;
   rematesA: number;
@@ -25,158 +28,69 @@ export type PartidoData = {
   aPuertaB: number;
   cornersA: number;
   cornersB: number;
-  marcadorA: number;
-  marcadorB: number;
   estadio: string;
   ganchoFinal: string;
+  guion: string;
 };
 
-export const datosEjemplo: PartidoData = {
-  competencia: 'ELIMINATORIAS · FECHA 12',
-  fecha: '8 JUL 2026',
-  equipoA: 'COLOMBIA',
-  equipoB: 'PARAGUAY',
-  posesionA: 68,
-  posesionB: 32,
-  rematesA: 14,
-  rematesB: 6,
-  aPuertaA: 3,
-  aPuertaB: 2,
-  cornersA: 5,
-  cornersB: 1,
-  marcadorA: 1,
-  marcadorB: 1,
-  estadio: 'Estadio Metropolitano',
-  ganchoFinal: '¿Sirve tener más balón si no generas peligro real?',
-};
-
-const COLOR_BG = '#05100C';
-const COLOR_ACCENT = '#FFC933';
-const COLOR_TEXT = '#F2EFE4';
-const COLOR_MUTED = '#7C8B83';
-
-// ---------- ACTO 1: HOOK (con contador tipo "Stat Counter") ----------
-const ActoHook: React.FC<{ data: PartidoData }> = ({ data }) => {
+function useSpringIn(delay = 0, config?: Parameters<typeof spring>[0]['config']) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-
-  const enter = spring({ frame, fps, config: { damping: 200 } });
-  const opacity = interpolate(enter, [0, 1], [0, 1]);
-  const translateY = interpolate(enter, [0, 1], [20, 0]);
-
-  const countProgress = spring({
-    frame: frame - 6,
+  return spring({
+    frame: frame - delay,
     fps,
-    config: { damping: 200 },
-    durationInFrames: 20,
+    config: { damping: 12, mass: 0.6, stiffness: 120, ...config },
   });
-  const numeroActual = Math.round(
-    interpolate(countProgress, [0, 1], [0, data.posesionA], {
-      extrapolateLeft: 'clamp',
-      extrapolateRight: 'clamp',
-    })
-  );
+}
 
-  return (
-    <AbsoluteFill
-      style={{
-        justifyContent: 'center',
-        padding: '0 70px',
-        opacity,
-        transform: `translateY(${translateY}px)`,
-      }}
-    >
-      <div
-        style={{
-          fontFamily: 'Courier New, monospace',
-          fontSize: 26,
-          color: COLOR_ACCENT,
-          letterSpacing: 4,
-          marginBottom: 20,
-        }}
-      >
-        POSESIÓN DE BALÓN
-      </div>
-      <div
-        style={{
-          fontSize: 92,
-          fontWeight: 800,
-          color: COLOR_TEXT,
-          lineHeight: 1.05,
-          letterSpacing: -1,
-        }}
-      >
-        {data.equipoA}
-        <br />
-        TUVO{' '}
-        <span style={{ color: COLOR_ACCENT, fontVariantNumeric: 'tabular-nums' }}>
-          {numeroActual}%
-        </span>
-        <br />
-        DEL BALÓN.
-      </div>
-    </AbsoluteFill>
-  );
+const ContadorNumero: React.FC<{ valor: number; delay: number }> = ({ valor, delay }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const progreso = spring({ frame: frame - delay, fps, config: { damping: 18, mass: 0.8 } });
+  const actual = Math.round(interpolate(progreso, [0, 1], [0, valor], { extrapolateRight: 'clamp' }));
+  return <>{actual}</>;
 };
 
-// ---------- ACTO 2: BARRAS COMPARATIVAS ----------
 const BarraStat: React.FC<{
   label: string;
   valorA: number;
   valorB: number;
-  maxValor: number;
   delay: number;
-}> = ({ label, valorA, valorB, maxValor, delay }) => {
+}> = ({ label, valorA, valorB, delay }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const progress = spring({
-    frame: frame - delay,
-    fps,
-    config: { damping: 200 },
-  });
-  const widthPct = interpolate(progress, [0, 1], [0, (valorA / maxValor) * 100], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  const numeroAnimado = Math.round(
-    interpolate(progress, [0, 1], [0, valorA], {
-      extrapolateLeft: 'clamp',
-      extrapolateRight: 'clamp',
-    })
-  );
+  const total = valorA + valorB || 1;
+  const pctA = (valorA / total) * 100;
+
+  const entrada = spring({ frame: frame - delay, fps, config: { damping: 10, mass: 0.7, stiffness: 100 } });
+  const anchoBarra = interpolate(entrada, [0, 1], [0, pctA], { extrapolateRight: 'clamp' });
+  const opacidad = interpolate(frame - delay, [0, 12], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  const deslizamiento = interpolate(entrada, [0, 1], [30, 0]);
 
   return (
-    <div style={{ marginBottom: 46 }}>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          fontSize: 30,
-          fontWeight: 700,
-          color: COLOR_TEXT,
-          marginBottom: 14,
-        }}
-      >
-        <span>{label}</span>
-        <span style={{ color: COLOR_MUTED, fontVariantNumeric: 'tabular-nums' }}>
-          {numeroAnimado} — {valorB}
+    <div style={{ opacity: opacidad, transform: `translateX(${deslizamiento}px)`, marginBottom: 44 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+        <span style={{ fontSize: 34, fontWeight: 700, color: TEXTO }}>
+          <ContadorNumero valor={valorA} delay={delay} />
+        </span>
+        <span style={{ fontSize: 26, letterSpacing: 3, color: TEXTO_MUTED, textTransform: 'uppercase', alignSelf: 'center' }}>
+          {label}
+        </span>
+        <span style={{ fontSize: 34, fontWeight: 700, color: TEXTO }}>
+          <ContadorNumero valor={valorB} delay={delay} />
         </span>
       </div>
-      <div
-        style={{
-          width: '100%',
-          height: 22,
-          background: 'rgba(242,239,228,0.08)',
-          borderRadius: 12,
-          overflow: 'hidden',
-        }}
-      >
+      <div style={{ height: 14, borderRadius: 7, background: '#16281E', overflow: 'hidden', position: 'relative' }}>
         <div
           style={{
-            height: '100%',
-            width: `${widthPct}%`,
-            background: COLOR_ACCENT,
-            borderRadius: 12,
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: `${anchoBarra}%`,
+            background: DORADO,
+            borderRadius: 7,
+            boxShadow: `0 0 20px ${DORADO}66`,
           }}
         />
       </div>
@@ -184,223 +98,190 @@ const BarraStat: React.FC<{
   );
 };
 
-const ActoBarras: React.FC<{ data: PartidoData }> = ({ data }) => {
+const TextoEscalonado: React.FC<{ texto: string; delay: number; fontSize: number }> = ({ texto, delay, fontSize }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const palabras = texto.split(' ');
+
   return (
-    <AbsoluteFill style={{ justifyContent: 'center', padding: '0 70px' }}>
-      <div
-        style={{
-          fontFamily: 'Courier New, monospace',
-          fontSize: 24,
-          color: COLOR_MUTED,
-          letterSpacing: 3,
-          marginBottom: 50,
-          textTransform: 'uppercase',
-        }}
-      >
-        {data.equipoA} vs {data.equipoB}
-      </div>
-      <BarraStat
-        label="Remates"
-        valorA={data.rematesA}
-        valorB={data.rematesB}
-        maxValor={Math.max(data.rematesA, data.rematesB)}
-        delay={0}
-      />
-      <BarraStat
-        label="A puerta"
-        valorA={data.aPuertaA}
-        valorB={data.aPuertaB}
-        maxValor={Math.max(data.aPuertaA, data.aPuertaB)}
-        delay={6}
-      />
-      <BarraStat
-        label="Córners"
-        valorA={data.cornersA}
-        valorB={data.cornersB}
-        maxValor={Math.max(data.cornersA, data.cornersB)}
-        delay={12}
-      />
-    </AbsoluteFill>
+    <div style={{ fontSize, fontWeight: 800, color: TEXTO, lineHeight: 1.2, display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+      {palabras.map((palabra, i) => {
+        const retraso = delay + i * 2;
+        const entrada = spring({ frame: frame - retraso, fps, config: { damping: 14, mass: 0.5 } });
+        const y = interpolate(entrada, [0, 1], [40, 0]);
+        const opacidad = interpolate(entrada, [0, 1], [0, 1]);
+        return (
+          <span key={i} style={{ display: 'inline-block', transform: `translateY(${y}px)`, opacity: opacidad }}>
+            {palabra}
+          </span>
+        );
+      })}
+    </div>
   );
 };
 
-// ---------- ACTO 3: MARCADOR ----------
-const ActoMarcador: React.FC<{ data: PartidoData }> = ({ data }) => {
+const Bug: React.FC = () => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  const scale = spring({ frame, fps, config: { damping: 12, stiffness: 120 } });
-
-  const countProgress = spring({
-    frame: frame - 8,
-    fps,
-    config: { damping: 200 },
-    durationInFrames: 15,
-  });
-  const golesA = Math.round(
-    interpolate(countProgress, [0, 1], [0, data.marcadorA], {
-      extrapolateLeft: 'clamp',
-      extrapolateRight: 'clamp',
-    })
-  );
-  const golesB = Math.round(
-    interpolate(countProgress, [0, 1], [0, data.marcadorB], {
-      extrapolateLeft: 'clamp',
-      extrapolateRight: 'clamp',
-    })
-  );
-
+  const pulso = 1 + Math.sin(frame / 10) * 0.03;
   return (
-    <AbsoluteFill
+    <div
       style={{
-        justifyContent: 'center',
-        alignItems: 'center',
-        transform: `scale(${interpolate(scale, [0, 1], [0.85, 1])})`,
+        position: 'absolute',
+        top: 60,
+        right: 48,
+        fontSize: 22,
+        letterSpacing: 4,
+        color: TEXTO_MUTED,
+        fontWeight: 600,
+        transform: `scale(${pulso})`,
       }}
     >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 50,
-          border: `2px solid ${COLOR_ACCENT}55`,
-          borderRadius: 16,
-          padding: '40px 60px',
-          background: 'rgba(255,201,51,0.05)',
-        }}
-      >
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 22, color: COLOR_TEXT, fontWeight: 700, marginBottom: 10 }}>
-            {data.equipoA}
-          </div>
-          <div
-            style={{
-              fontFamily: 'Courier New, monospace',
-              fontSize: 90,
-              fontWeight: 800,
-              color: COLOR_TEXT,
-              fontVariantNumeric: 'tabular-nums',
-            }}
-          >
-            {golesA}
-          </div>
+      PRONTO <span style={{ color: DORADO }}>SPORT</span>
+    </div>
+  );
+};
+
+const EscenaApertura: React.FC<Pick<Props, 'competencia' | 'fecha' | 'equipoA' | 'equipoB'>> = ({
+  competencia, fecha, equipoA, equipoB,
+}) => {
+  const entradaA = useSpringIn(5);
+  const entradaB = useSpringIn(12);
+  const entradaVs = useSpringIn(20, { damping: 6 });
+
+  return (
+    <AbsoluteFill style={{ background: FONDO, justifyContent: 'center', alignItems: 'center' }}>
+      <div style={{ position: 'absolute', top: 60, left: 48, fontSize: 22, letterSpacing: 3, color: TEXTO_MUTED }}>
+        {competencia}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 40 }}>
+        <div style={{
+          fontSize: 52, fontWeight: 800, color: TEXTO, textAlign: 'right', width: 380,
+          transform: `translateX(${interpolate(entradaA, [0, 1], [-200, 0])}px)`,
+          opacity: entradaA,
+        }}>
+          {equipoA}
         </div>
-        <div style={{ fontSize: 50, color: COLOR_MUTED }}>—</div>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 22, color: COLOR_TEXT, fontWeight: 700, marginBottom: 10 }}>
-            {data.equipoB}
-          </div>
-          <div
-            style={{
-              fontFamily: 'Courier New, monospace',
-              fontSize: 90,
-              fontWeight: 800,
-              color: COLOR_TEXT,
-              fontVariantNumeric: 'tabular-nums',
-            }}
-          >
-            {golesB}
-          </div>
+        <div style={{
+          fontSize: 40, color: DORADO, fontWeight: 900,
+          transform: `scale(${interpolate(entradaVs, [0, 1], [0, 1])})`,
+        }}>
+          VS
+        </div>
+        <div style={{
+          fontSize: 52, fontWeight: 800, color: TEXTO, width: 380,
+          transform: `translateX(${interpolate(entradaB, [0, 1], [200, 0])}px)`,
+          opacity: entradaB,
+        }}>
+          {equipoB}
         </div>
       </div>
-      <div
-        style={{
-          marginTop: 30,
-          fontFamily: 'Courier New, monospace',
-          fontSize: 20,
-          color: COLOR_MUTED,
-          letterSpacing: 2,
-          textTransform: 'uppercase',
-        }}
-      >
-        {data.estadio}
+      <div style={{ marginTop: 24, fontSize: 22, color: TEXTO_MUTED }}>{fecha}</div>
+    </AbsoluteFill>
+  );
+};
+
+const EscenaMarcador: React.FC<Pick<Props, 'equipoA' | 'equipoB' | 'marcadorA' | 'marcadorB' | 'estadio'>> = ({
+  equipoA, equipoB, marcadorA, marcadorB, estadio,
+}) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const entrada = spring({ frame, fps, config: { damping: 8, mass: 0.9 } });
+  const glow = interpolate(Math.sin(frame / 8), [-1, 1], [10, 30]);
+
+  return (
+    <AbsoluteFill style={{ background: FONDO, justifyContent: 'center', alignItems: 'center' }}>
+      <div style={{
+        transform: `scale(${interpolate(entrada, [0, 1], [0.6, 1])})`,
+        opacity: entrada,
+        textAlign: 'center',
+      }}>
+        <div style={{ fontSize: 24, color: TEXTO_MUTED, letterSpacing: 2, marginBottom: 20 }}>{estadio}</div>
+        <div style={{
+          fontSize: 140, fontWeight: 900, color: DORADO,
+          textShadow: `0 0 ${glow}px ${DORADO}`,
+        }}>
+          <ContadorNumero valor={marcadorA} delay={0} /> — <ContadorNumero valor={marcadorB} delay={0} />
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 20, fontSize: 28, color: TEXTO, fontWeight: 600 }}>
+          <span>{equipoA}</span>
+          <span>{equipoB}</span>
+        </div>
       </div>
     </AbsoluteFill>
   );
 };
 
-// ---------- ACTO 4: GANCHO DE CIERRE ----------
-const ActoGancho: React.FC<{ data: PartidoData }> = ({ data }) => {
+const EscenaTitular: React.FC<{ guion: string }> = ({ guion }) => {
+  const primeraFrase = guion.split('.')[0] + '.';
+  return (
+    <AbsoluteFill style={{ background: FONDO, justifyContent: 'center', padding: '0 64px' }}>
+      <TextoEscalonado texto={primeraFrase} delay={0} fontSize={58} />
+    </AbsoluteFill>
+  );
+};
+
+const EscenaStats: React.FC<Props> = (props) => {
+  return (
+    <AbsoluteFill style={{ background: FONDO, justifyContent: 'center', padding: '0 56px' }}>
+      <div style={{ fontSize: 22, color: TEXTO_MUTED, letterSpacing: 2, marginBottom: 40 }}>
+        {props.equipoA} VS {props.equipoB}
+      </div>
+      <BarraStat label="Posesion" valorA={props.posesionA} valorB={props.posesionB} delay={0} />
+      <BarraStat label="Remates" valorA={props.rematesA} valorB={props.rematesB} delay={15} />
+      <BarraStat label="A puerta" valorA={props.aPuertaA} valorB={props.aPuertaB} delay={30} />
+      <BarraStat label="Corners" valorA={props.cornersA} valorB={props.cornersB} delay={45} />
+    </AbsoluteFill>
+  );
+};
+
+const EscenaCierre: React.FC<{ ganchoFinal: string }> = ({ ganchoFinal }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const enter = spring({ frame, fps, config: { damping: 200 } });
-  const opacity = interpolate(enter, [0, 1], [0, 1]);
+  const entradaCta = spring({ frame: frame - 30, fps, config: { damping: 10 } });
+  const glow = interpolate(Math.sin(frame / 6), [-1, 1], [5, 20]);
 
   return (
-    <AbsoluteFill style={{ justifyContent: 'center', padding: '0 70px', opacity }}>
-      <div style={{ fontSize: 60, fontWeight: 700, color: COLOR_TEXT, lineHeight: 1.25 }}>
-        {data.ganchoFinal}
-      </div>
-      <div
-        style={{
-          marginTop: 40,
-          fontFamily: 'Courier New, monospace',
-          fontSize: 24,
-          color: COLOR_ACCENT,
-          letterSpacing: 2,
-        }}
-      >
+    <AbsoluteFill style={{ background: FONDO, justifyContent: 'center', alignItems: 'center', padding: '0 64px' }}>
+      <TextoEscalonado texto={ganchoFinal} delay={0} fontSize={54} />
+      <div style={{
+        marginTop: 44,
+        fontSize: 26,
+        letterSpacing: 3,
+        color: DORADO,
+        fontWeight: 700,
+        opacity: entradaCta,
+        transform: `translateY(${interpolate(entradaCta, [0, 1], [20, 0])}px)`,
+        textShadow: `0 0 ${glow}px ${DORADO}88`,
+      }}>
         → RESPONDE EN COMENTARIOS
       </div>
     </AbsoluteFill>
   );
 };
 
-// ---------- MARCA DE AGUA / ELEMENTOS FIJOS ----------
-const Marca: React.FC<{ data: PartidoData }> = ({ data }) => (
-  <>
-    <div
-      style={{
-        position: 'absolute',
-        top: 60,
-        left: 60,
-        fontFamily: 'Courier New, monospace',
-        fontSize: 20,
-        color: COLOR_MUTED,
-        letterSpacing: 3,
-        textTransform: 'uppercase',
-      }}
-    >
-      {data.competencia}
-    </div>
-    <div
-      style={{
-        position: 'absolute',
-        top: 60,
-        right: 60,
-        fontFamily: 'Courier New, monospace',
-        fontSize: 20,
-        color: '#4A5850',
-        letterSpacing: 2,
-      }}
-    >
-      PRONTO SPORT
-    </div>
-  </>
-);
+export const ResumenTactico: React.FC<Props> = (props) => {
+  const frame = useCurrentFrame();
+  const { durationInFrames } = useVideoConfig();
+  const fadeOut = interpolate(frame, [durationInFrames - 20, durationInFrames], [1, 0], { extrapolateLeft: 'clamp' });
 
-// ---------- COMPOSICIÓN PRINCIPAL ----------
-export const ResumenTactico: React.FC<{ data?: PartidoData }> = ({
-  data = datosEjemplo,
-}) => {
   return (
-    <AbsoluteFill style={{ backgroundColor: COLOR_BG, fontFamily: 'Helvetica, Arial, sans-serif' }}>
-      <Marca data={data} />
-
+    <AbsoluteFill style={{ opacity: fadeOut, fontFamily: 'Arial, sans-serif' }}>
       <Sequence from={0} durationInFrames={90}>
-        <ActoHook data={data} />
+        <EscenaApertura {...props} />
       </Sequence>
-
-      <Sequence from={90} durationInFrames={90}>
-        <ActoBarras data={data} />
+      <Sequence from={90} durationInFrames={120}>
+        <EscenaMarcador {...props} />
       </Sequence>
-
-      <Sequence from={180} durationInFrames={90}>
-        <ActoMarcador data={data} />
+      <Sequence from={210} durationInFrames={180}>
+        <EscenaTitular guion={props.guion} />
       </Sequence>
-
-      <Sequence from={270} durationInFrames={90}>
-        <ActoGancho data={data} />
+      <Sequence from={390} durationInFrames={210}>
+        <EscenaStats {...props} />
       </Sequence>
+      <Sequence from={600} durationInFrames={120}>
+        <EscenaCierre ganchoFinal={props.ganchoFinal} />
+      </Sequence>
+      <Bug />
     </AbsoluteFill>
   );
 };
