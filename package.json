@@ -1,34 +1,15 @@
 {
   "name": "prontosport",
-  "version": "3.0.0",
-  "description": "Generador automático de videos deportivos con HyperFrames",
+  "version": "1.0.0",
+  "description": "Generador automatico de resumenes tacticos de futbol colombiano",
   "main": "generar-guion.js",
+  "type": "commonjs",
   "scripts": {
-    "start": "node generar-guion.js && node generar-radiografia.js && node render-hyperframes.js",
-    "guion": "node generar-guion.js",
-    "radiografia": "node generar-radiografia.js",
-    "render": "node render-hyperframes.js"
+    "generar": "node generar-guion.js",
+    "renderizar": "node render-hyperframes.js"
   },
   "dependencies": {
-    "dotenv": "^16.4.5",
-    "hyperframes": "^0.1.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
-  },
-  "devDependencies": {
-    "@types/react": "^18.2.0",
-    "typescript": "^5.0.0"
-  },
-  "keywords": [
-    "deportes",
-    "video",
-    "ia",
-    "gemini",
-    "hyperframes"
-  ],
-  "author": "infopronto-maker",
-  "license": "MIT",
-  "engines": {
-    "node": ">=22.0.0"
+    "@supabase/supabase-js": "^2.45.0",
+    "dotenv": "^16.4.5"
   }
 }
