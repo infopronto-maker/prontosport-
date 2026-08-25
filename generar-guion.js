@@ -123,7 +123,6 @@ function construirJSON(partido) {
   };
 }
 
-// Gemini SOLO devuelve texto creativo, nunca cifras del marcador — esas van directo del JSON real.
 async function generarTextos(json) {
   const prompt = `Datos del partido: ${JSON.stringify(json, null, 2)}
 
@@ -146,41 +145,54 @@ No inventes cifras que no estén en los datos.`;
   }
 }
 
-// El HTML lo arma el código, no Gemini — el marcador y los nombres son datos exactos, no texto generado.
+// HTML siguiendo el esquema real de HyperFrames: raiz con data-composition-id/width/height,
+// cada elemento con class="clip" + data-start/data-duration/data-track-index.
+// Sin CSS @keyframes de reloj real — la presencia de cada clip la controla HyperFrames.
 function construirHTML(json, textos) {
   return `<!DOCTYPE html>
 <html>
 <head>
   <style>
-    body {
-      margin: 0;
-      background: #0a0a1a;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
+    body { margin: 0; }
+    .clip {
+      display: none;
+      position: absolute;
+      left: 0; right: 0;
+      text-align: center;
       font-family: Arial, sans-serif;
       color: white;
-      flex-direction: column;
-      padding: 20px;
+      padding: 0 40px;
+      box-sizing: border-box;
     }
-    .titular { font-size: 38px; font-weight: bold; color: #e94560; text-align: center; animation: fadeIn 1s ease-out; }
-    .equipos { display: flex; align-items: center; gap: 30px; margin: 20px 0; font-size: 36px; font-weight: bold; }
-    .marcador { font-size: 52px; color: #e94560; font-weight: bold; }
-    .resumen { font-size: 22px; color: #ccd6f6; text-align: center; max-width: 800px; animation: fadeIn 2s ease-out; }
-    .gancho { font-size: 26px; color: #e94560; font-weight: bold; text-align: center; margin-top: 20px; animation: fadeIn 2.5s ease-out; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .titular { top: 260px; font-size: 68px; font-weight: bold; color: #e94560; }
+    .equipos { top: 500px; display: flex; justify-content: center; align-items: center; gap: 40px; font-size: 56px; font-weight: bold; }
+    .marcador { font-size: 84px; color: #e94560; font-weight: bold; }
+    .resumen { top: 780px; font-size: 40px; color: #ccd6f6; max-width: 900px; margin: 0 auto; }
+    .gancho { top: 1000px; font-size: 46px; color: #e94560; font-weight: bold; }
   </style>
 </head>
 <body>
-  <div class="titular" data-duration="2s">${textos.titular}</div>
-  <div class="equipos" data-delay="1s" data-duration="2s">
-    <span>${json.local.toUpperCase()}</span>
-    <span class="marcador">${json.marcadorLocal} - ${json.marcadorVisitante}</span>
-    <span>${json.visitante.toUpperCase()}</span>
+  <div id="root" data-composition-id="pronto-sport" data-width="1080" data-height="1920">
+
+    <div id="titular" class="clip titular" data-start="0" data-duration="7" data-track-index="0">
+      ${textos.titular}
+    </div>
+
+    <div id="equipos" class="clip equipos" data-start="1" data-duration="6" data-track-index="1">
+      <span>${json.local.toUpperCase()}</span>
+      <span class="marcador">${json.marcadorLocal} - ${json.marcadorVisitante}</span>
+      <span>${json.visitante.toUpperCase()}</span>
+    </div>
+
+    <div id="resumen" class="clip resumen" data-start="2.5" data-duration="4.5" data-track-index="2">
+      ${textos.resumen}
+    </div>
+
+    <div id="gancho" class="clip gancho" data-start="5" data-duration="2" data-track-index="3">
+      ${textos.gancho}
+    </div>
+
   </div>
-  <div class="resumen" data-delay="2.5s" data-duration="3s">${textos.resumen}</div>
-  <div class="gancho" data-delay="5s" data-duration="2s">${textos.gancho}</div>
 </body>
 </html>`;
 }
