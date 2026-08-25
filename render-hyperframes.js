@@ -6,7 +6,7 @@ const config = require('./config.js');
 
 function renderVideo(htmlContent, outputPath) {
   return new Promise((resolve, reject) => {
-    const tempHtml = path.join(__dirname, 'temp.html');
+    const tempHtml = 'temp.html';
     try {
       fs.writeFileSync(tempHtml, htmlContent, 'utf8');
     } catch (err) {
