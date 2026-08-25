@@ -1,5 +1,5 @@
 // ============================================================
-// generar-guion.js - Genera contenido con Gemini (FÚTBOL LATINO)
+// generar-guion.js - Genera HTML con Gemini para HyperFrames
 // ============================================================
 
 require('dotenv').config();
@@ -130,7 +130,6 @@ async function traerPartidosDelDia() {
     return [];
   }
 
-  // Eliminar duplicados
   const vistos = new Set();
   const unicos = todosLosPartidos.filter(p => {
     if (vistos.has(p.fixture.id)) return false;
@@ -138,7 +137,6 @@ async function traerPartidosDelDia() {
     return true;
   });
 
-  // FILTRO: solo partidos de equipos prioritarios latinoamericanos
   const filtrados = unicos.filter(p => {
     const local = p.teams.home.name;
     const visitante = p.teams.away.name;
@@ -148,7 +146,6 @@ async function traerPartidosDelDia() {
     );
   });
 
-  // Si no hay partidos de equipos prioritarios, usar partidos de Colombia y ligas objetivo
   let seleccionados = filtrados;
   if (seleccionados.length === 0) {
     console.log('⚠️ No hay partidos de equipos prioritarios. Usando partidos de Colombia y ligas objetivo.');
@@ -186,33 +183,32 @@ function construirJSON(partido) {
   };
 }
 
-async function generarContenido(json) {
-  // PROMPT con enfoque latinoamericano
-  const prompt = `Eres un periodista deportivo especializado en fútbol latinoamericano. Con estos datos:
+async function generarHTML(json) {
+  // PROMPT que genera HTML para HyperFrames
+  const prompt = `Eres un diseñador de videos. Genera un HTML completo para un video de 10-12 segundos con estos datos del partido de fútbol:
+
 ${JSON.stringify(json, null, 2)}
 
-Responde en este formato EXACTO (separado por "|"):
-TITULAR: [frase impactante de máximo 8 palabras, con emoción]
-RESUMEN: [resumen de máximo 20 palabras, destacando lo más importante]
-GANCHO: [pregunta corta de máximo 10 palabras, que invite a opinar]
+REGLAS ESTRICTAS:
+1. Formato vertical (1080x1920).
+2. Fondo oscuro (#0a0a1a) con texto en blanco y rojo (#e94560).
+3. Incluye:
+   - TITULAR: frase impactante (máximo 8 palabras) en grande.
+   - EQUIPOS y MARCADOR (formato "3 - 1").
+   - RESUMEN: máximo 20 palabras.
+   - GANCHO: pregunta corta (máximo 10 palabras) al final.
+4. Usa animaciones CSS: fadeIn, slideUp, etc.
+5. Cada elemento debe tener atributos data-duration y data-delay para controlar el tiempo.
+6. Duración total: 12 segundos (12000ms).
 
-Ejemplos:
-- TITULAR: América 3-1 Chivas | RESUMEN: El América domina el clásico y se acerca al título. | GANCHO: ¿Justo ganador?
-- TITULAR: River 2-0 Boca | RESUMEN: River fue superior y se llevó el superclásico. | GANCHO: ¿Fue penal?
+Responde SOLO con el HTML completo, sin explicaciones ni markdown.`;
 
-IMPORTANTE: Usa un tono apasionado y cercano, como habla el hincha latinoamericano.`;
-
-  const respuesta = await llamarGemini(prompt);
-
-  const titular = respuesta.match(/TITULAR:\s*([^|]*)/)?.[1]?.trim() || `${json.local} ${json.resultado} ${json.visitante}`;
-  const resumen = respuesta.match(/RESUMEN:\s*([^|]*)/)?.[1]?.trim() || 'Partido disputado.';
-  const gancho = respuesta.match(/GANCHO:\s*([^|]*)/)?.[1]?.trim() || '¿Qué opinas?';
-
-  return { titular, resumen, gancho };
+  const html = await llamarGemini(prompt);
+  return html;
 }
 
 async function main() {
-  console.log('🚀 Iniciando generación de contenido para fútbol latinoamericano...');
+  console.log('🚀 Iniciando generación de HTML para HyperFrames...');
 
   try {
     const partidos = await traerPartidosDelDia();
@@ -225,37 +221,17 @@ async function main() {
     console.log(`✅ ${partidos.length} partidos seleccionados`);
 
     const resultados = [];
-    const datosParaVideo = [];
 
     for (const partido of partidos) {
       console.log(`\n📊 Procesando: ${partido.teams.home.name} vs ${partido.teams.away.name}`);
 
       const json = construirJSON(partido);
-      const contenido = await generarContenido(json);
-      console.log(`   📝 Titular: "${contenido.titular}"`);
-      console.log(`   📝 Resumen: "${contenido.resumen}"`);
-      console.log(`   🎯 Gancho: "${contenido.gancho}"`);
-
-      const [marcadorA, marcadorB] = json.resultado.split('-').map(Number);
+      const html = await generarHTML(json);
+      console.log(`   📝 HTML generado (${html.length} caracteres)`);
 
       resultados.push({
         ...json,
-        titular: contenido.titular,
-        resumen: contenido.resumen,
-        gancho: contenido.gancho,
-      });
-
-      datosParaVideo.push({
-        competencia: json.liga.toUpperCase(),
-        fecha: json.fecha,
-        equipoA: json.local.toUpperCase(),
-        equipoB: json.visitante.toUpperCase(),
-        marcadorA,
-        marcadorB,
-        estadio: json.estadio,
-        titular: contenido.titular,
-        resumen: contenido.resumen,
-        gancho: contenido.gancho,
+        html,
       });
     }
 
@@ -266,18 +242,12 @@ async function main() {
     }
 
     fs.writeFileSync(
-      path.join(dataDir, 'contenido-hoy.json'),
+      path.join(dataDir, 'partidos-html.json'),
       JSON.stringify(resultados, null, 2)
     );
 
-    fs.writeFileSync(
-      path.join(dataDir, 'partido-video.json'),
-      JSON.stringify(datosParaVideo[0] || {}, null, 2)
-    );
-
-    console.log(`\n✅ Archivos guardados en ${dataDir}/`);
-    console.log(`   - contenido-hoy.json (${resultados.length} partidos)`);
-    console.log(`   - partido-video.json (primer partido)`);
+    console.log(`\n✅ HTML guardado en ${dataDir}/partidos-html.json`);
+    console.log(`   ${resultados.length} partidos generados`);
 
   } catch (error) {
     console.error('❌ Error fatal:', error);
@@ -289,4 +259,4 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { generarContenido, construirJSON };
+module.exports = { generarHTML, construirJSON };
