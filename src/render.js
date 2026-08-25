@@ -1,12 +1,13 @@
 // ============================================================
-// render.js - Renderiza videos para TODOS los partidos
+// render.js - Renderiza videos usando @remotion/renderer y @remotion/bundler
 // ============================================================
 
-const { renderMedia } = require('remotion');
+const { bundle } = require('@remotion/bundler');
+const { renderMedia } = require('@remotion/renderer');
 const path = require('path');
 const fs = require('fs');
 
-async function renderVideo(partidoIndex) {
+async function renderVideo(partidoIndex, serveUrl) {
   console.log(`🎬 Renderizando video para partido ${partidoIndex + 1}...`);
 
   const outputDir = path.join(__dirname, '..', 'output');
@@ -14,14 +15,12 @@ async function renderVideo(partidoIndex) {
     fs.mkdirSync(outputDir, { recursive: true });
   }
 
-  // Nombre del archivo con el índice del partido
   const outputPath = path.join(outputDir, `video-partido-${partidoIndex + 1}.mp4`);
 
-  // Renderizar directamente
   await renderMedia({
     codec: 'h264',
     composition: 'ResumenTactico',
-    serveUrl: path.join(__dirname, 'index.tsx'),
+    serveUrl: serveUrl,
     outputLocation: outputPath,
     concurrency: 1,
     pixelFormat: 'yuv420p',
@@ -41,7 +40,13 @@ async function renderAllVideos() {
   console.log('🚀 Iniciando renderizado de TODOS los partidos...');
 
   try {
-    // Leer el archivo de datos
+    // 1. Crear el bundle de Remotion
+    console.log('📦 Creando bundle de Remotion...');
+    const entryPoint = path.join(__dirname, 'index.tsx');
+    const serveUrl = await bundle(entryPoint, () => undefined);
+    console.log(`✅ Bundle creado: ${serveUrl}`);
+
+    // 2. Leer los datos de los partidos
     const dataPath = path.join(__dirname, '..', 'data', 'contenido-hoy.json');
     if (!fs.existsSync(dataPath)) {
       console.error('❌ No existe data/contenido-hoy.json');
@@ -56,7 +61,7 @@ async function renderAllVideos() {
 
     console.log(`📊 ${partidos.length} partidos encontrados`);
 
-    // Renderizar un video por cada partido
+    // 3. Renderizar un video por cada partido
     const resultados = [];
     for (let i = 0; i < partidos.length; i++) {
       // Guardar el partido actual en partido-video.json para que Remotion lo use
@@ -64,7 +69,7 @@ async function renderAllVideos() {
       fs.writeFileSync(videoDataPath, JSON.stringify(partidos[i], null, 2));
 
       // Renderizar el video
-      const outputPath = await renderVideo(i);
+      const outputPath = await renderVideo(i, serveUrl);
       resultados.push(outputPath);
     }
 
