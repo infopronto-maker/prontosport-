@@ -19,6 +19,9 @@ jobs:
       - name: Instalar dependencias
         run: npm install
 
+      - name: Instalar FFmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
       - name: Configurar variables
         run: |
           echo "API_FOOTBALL_KEY=${{ secrets.API_FOOTBALL_KEY }}" >> .env
