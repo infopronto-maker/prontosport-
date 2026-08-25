@@ -1,5 +1,5 @@
 // ============================================================
-// config.js - Configuración para FÚTBOL LATINOAMERICANO
+// config.js - Configuración centralizada (FÚTBOL LATINOAMERICANO)
 // ============================================================
 
 module.exports = {
@@ -10,15 +10,15 @@ module.exports = {
   // EQUIPOS PRIORITARIOS (Latinoamérica)
   EQUIPOS_PRIORITARIOS: [
     // Argentina
-    'River Plate', 'Boca Juniors', 'Independiente', 'Racing', 'San Lorenzo',
+    'River Plate', 'Boca Juniors', 'Independiente', 'Racing Club', 'San Lorenzo',
     // Brasil
     'Flamengo', 'Palmeiras', 'Santos', 'Corinthians', 'São Paulo',
     'Grêmio', 'Internacional',
     // Colombia
-    'Nacional', 'Millonarios', 'Santa Fe', 'América de Cali', 'Junior',
-    'Tolima', 'Medellín', 'Cali',
+    'Atlético Nacional', 'Millonarios', 'Independiente Santa Fe', 'América de Cali',
+    'Junior', 'Deportes Tolima', 'Independiente Medellín', 'Deportivo Cali',
     // México
-    'América', 'Chivas', 'Cruz Azul', 'Pumas', 'Monterrey', 'Tigres',
+    'Club América', 'Guadalajara', 'Cruz Azul', 'Pumas', 'Monterrey', 'Tigres',
     // Chile
     'Colo-Colo', 'Universidad de Chile', 'Universidad Católica',
     // Uruguay
@@ -56,7 +56,7 @@ module.exports = {
   GEMINI: {
     MODELO: 'gemini-2.5-flash',
     TEMPERATURA: 0.7,
-    MAX_TOKENS: 500,
+    MAX_TOKENS: 1000,
     INTENTOS_MAX: 3,
     ESPERA_BASE: 60000,
     ESPERA_MAX: 180000,
@@ -66,6 +66,6 @@ module.exports = {
   RUTAS: {
     DATOS: 'data/',
     HISTORIAL: 'historial/',
-    VIDEO_SALIDA: 'output/video.mp4',
+    VIDEO_SALIDA: 'output/',
   },
 };
