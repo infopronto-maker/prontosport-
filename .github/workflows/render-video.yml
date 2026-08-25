@@ -1,4 +1,4 @@
-name: Generar video diario
+name: Generar video diario con HyperFrames
 
 on:
   schedule:
@@ -15,23 +15,23 @@ jobs:
       - name: 🔧 Configurar Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 22
 
       - name: 📦 Instalar dependencias
-        run: npm install
+        run: |
+          npm install
+          npm install -g hyperframes
 
       - name: 🔑 Configurar variables de entorno
         run: |
           echo "API_FOOTBALL_KEY=${{ secrets.API_FOOTBALL_KEY }}" >> .env
           echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> .env
 
-      - name: 📝 Generar guion y estadísticas
-        run: |
-          node generar-guion.js
-          node generar-radiografia.js
+      - name: 📝 Generar HTML con Gemini
+        run: node generar-guion.js
 
-      - name: 🎬 Renderizar videos (todos los partidos)
-        run: node src/render.js
+      - name: 🎬 Renderizar videos con HyperFrames
+        run: node render-hyperframes.js
 
       - name: 📤 Subir todos los videos como artefactos
         uses: actions/upload-artifact@v4
