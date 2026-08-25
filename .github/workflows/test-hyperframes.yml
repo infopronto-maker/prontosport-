@@ -1,0 +1,28 @@
+name: Probar HyperFrames
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: 🔧 Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 📦 Instalar HyperFrames
+        run: npm install -g hyperframes
+
+      - name: 🎬 Renderizar video de prueba
+        run: hyperframes render prueba.html -o output/video-ejemplo.mp4
+
+      - name: 📤 Subir video de ejemplo
+        uses: actions/upload-artifact@v4
+        with:
+          name: video-ejemplo
+          path: output/video-ejemplo.mp4
