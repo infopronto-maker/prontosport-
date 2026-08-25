@@ -8,6 +8,7 @@ on:
 jobs:
   generate:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -16,9 +17,7 @@ jobs:
           node-version: 22
 
       - name: Instalar dependencias
-        run: |
-          npm install
-          npm install -g hyperframes @supabase/supabase-js
+        run: npm install
 
       - name: Configurar variables
         run: |
@@ -27,7 +26,7 @@ jobs:
           echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" >> .env
           echo "SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" >> .env
 
-      - name: Generar HTML
+      - name: Generar textos y HTML
         run: node generar-guion.js
 
       - name: Renderizar y subir a Supabase
@@ -38,3 +37,4 @@ jobs:
         with:
           name: videos
           path: output/*.mp4
+          retention-days: 14
