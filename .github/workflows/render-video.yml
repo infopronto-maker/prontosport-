@@ -1,4 +1,4 @@
-name: Generar video diario con HyperFrames
+name: Generar video diario
 
 on:
   schedule:
@@ -9,32 +9,32 @@ jobs:
   generate:
     runs-on: ubuntu-latest
     steps:
-      - name: 📥 Clonar repositorio
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: 🔧 Configurar Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
 
-      - name: 📦 Instalar dependencias
+      - name: Instalar dependencias
         run: |
           npm install
-          npm install -g hyperframes
+          npm install -g hyperframes @supabase/supabase-js
 
-      - name: 🔑 Configurar variables de entorno
+      - name: Configurar variables
         run: |
           echo "API_FOOTBALL_KEY=${{ secrets.API_FOOTBALL_KEY }}" >> .env
           echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> .env
+          echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}" >> .env
+          echo "SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" >> .env
 
-      - name: 📝 Generar HTML con Gemini
+      - name: Generar HTML
         run: node generar-guion.js
 
-      - name: 🎬 Renderizar videos con HyperFrames
+      - name: Renderizar y subir a Supabase
         run: node render-hyperframes.js
 
-      - name: 📤 Subir todos los videos como artefactos
+      - name: Subir artefactos (backup)
         uses: actions/upload-artifact@v4
         with:
-          name: videos-prontosport
+          name: videos
           path: output/*.mp4
