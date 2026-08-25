@@ -1,0 +1,13 @@
+[
+  {
+    "partido_id": 123456,
+    "local": "América",
+    "visitante": "Chivas",
+    "resultado": "3-1",
+    "fecha": "25 de agosto de 2026",
+    "estadio": "Estadio Azteca",
+    "liga": "Liga MX",
+    "ganador": "América",
+    "html": "<!DOCTYPE html><html><head><style>body{margin:0;background:#0a0a1a;display:flex;justify-content:center;align-items:center;height:100vh;font-family:Arial,sans-serif;color:white;flex-direction:column;padding:20px;}.titular{font-size:38px;font-weight:bold;color:#e94560;text-align:center;animation:fadeIn 1s ease-out;}.equipos{display:flex;gap:30px;margin:20px 0;font-size:36px;font-weight:bold;}.marcador{font-size:52px;color:#e94560;font-weight:bold;}.resumen{font-size:22px;color:#ccd6f6;text-align:center;max-width:800px;animation:fadeIn 2s ease-out;}.gancho{font-size:26px;color:#e94560;font-weight:bold;text-align:center;margin-top:20px;animation:fadeIn 2.5s ease-out;}@keyframes fadeIn{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}</style></head><body><div class='titular' data-duration='2s'>¡América 3-1 Chivas!</div><div class='equipos' data-delay='1s' data-duration='2s'><span>AMÉRICA</span><span class='marcador'>3 - 1</span><span>CHIVAS</span></div><div class='resumen' data-delay='2.5s' data-duration='3s'>El América dominó el clásico y se acerca al título.</div><div class='gancho' data-delay='5s' data-duration='2s'>¿Justo ganador?</div></body></html>"
+  }
+]
