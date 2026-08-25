@@ -1,5 +1,5 @@
 // ============================================================
-// render-hyperframes.js - Renderiza y sube a Supabase
+// render-hyperframes.js - Renderiza y sube a Supabase (CORREGIDO)
 // ============================================================
 
 const fs = require('fs');
@@ -9,14 +9,29 @@ const config = require('./config.js');
 
 function renderVideo(htmlContent, outputPath) {
   return new Promise((resolve, reject) => {
+    // Crear archivo temporal en la raíz
     const tempHtml = path.join(__dirname, 'temp.html');
-    fs.writeFileSync(tempHtml, htmlContent);
-    const cmd = `npx hyperframes render ${tempHtml} -o ${outputPath}`;
-    console.log(`▶️ ${cmd}`);
+    try {
+      fs.writeFileSync(tempHtml, htmlContent, 'utf8');
+      console.log(`✅ Archivo temporal creado: ${tempHtml}`);
+    } catch (err) {
+      reject(new Error(`Error al escribir temp.html: ${err.message}`));
+      return;
+    }
+
+    // Usar hyperframes directamente (ya instalado globalmente)
+    const cmd = `hyperframes render "${tempHtml}" -o "${outputPath}"`;
+    console.log(`▶️ Ejecutando: ${cmd}`);
+
     exec(cmd, (error, stdout, stderr) => {
-      fs.unlinkSync(tempHtml);
-      if (error) { reject(error); return; }
-      console.log(`✅ Video: ${outputPath}`);
+      // Limpiar archivo temporal
+      try { fs.unlinkSync(tempHtml); } catch (e) {}
+
+      if (error) {
+        reject(new Error(`Error al renderizar: ${stderr || error.message}`));
+        return;
+      }
+      console.log(`✅ Video renderizado: ${outputPath}`);
       resolve(outputPath);
     });
   });
@@ -40,13 +55,17 @@ async function subirSupabase(filePath) {
 async function main() {
   console.log('🚀 Renderizando videos con HyperFrames...');
   const dataPath = path.join(config.RUTAS.DATOS, 'partidos-html.json');
+
   if (!fs.existsSync(dataPath)) {
-    console.error('❌ No existe data/partidos-html.json');
+    console.log('⚠️ No hay datos para renderizar. Saliendo.');
     return;
   }
 
   const partidos = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
-  if (!partidos.length) { console.log('⚠️ No hay partidos'); return; }
+  if (!partidos.length) {
+    console.log('⚠️ No hay partidos.');
+    return;
+  }
 
   const outputDir = config.RUTAS.VIDEO_SALIDA;
   if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
@@ -59,7 +78,7 @@ async function main() {
     await renderVideo(p.html, out);
     const url = await subirSupabase(out);
     urls.push(url);
-    console.log(`🔗 ${url}`);
+    console.log(`🔗 Enlace público: ${url}`);
   }
 
   console.log(`\n✅ ${urls.length} videos subidos a Supabase`);
