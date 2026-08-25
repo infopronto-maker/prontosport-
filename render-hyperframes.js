@@ -14,7 +14,7 @@ function renderVideo(htmlContent, outputPath) {
       return;
     }
 
-    const cmd = `npx hyperframes render "${tempHtml}" -o "${outputPath}"`;
+    const cmd = `npx hyperframes render -c "${tempHtml}" -o "${outputPath}"`;
     console.log(`▶️ Ejecutando: ${cmd}`);
 
     exec(cmd, (error, stdout, stderr) => {
