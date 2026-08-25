@@ -1,7 +1,3 @@
-// ============================================================
-// generar-guion.js - Genera HTML con Gemini (definitivo)
-// ============================================================
-
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
@@ -115,6 +111,8 @@ function construirJSON(partido) {
     local: partido.teams.home.name,
     visitante: partido.teams.away.name,
     resultado: `${partido.goals.home}-${partido.goals.away}`,
+    marcadorLocal: partido.goals.home,
+    marcadorVisitante: partido.goals.away,
     fecha: new Date(partido.fixture.date).toLocaleDateString('es-CO', {
       day: 'numeric', month: 'long', year: 'numeric'
     }),
@@ -125,24 +123,70 @@ function construirJSON(partido) {
   };
 }
 
-async function generarHTML(json) {
-  const prompt = `Eres diseñador de videos. Genera HTML para video de 10s con estos datos:
-${JSON.stringify(json, null, 2)}
+// Gemini SOLO devuelve texto creativo, nunca cifras del marcador — esas van directo del JSON real.
+async function generarTextos(json) {
+  const prompt = `Datos del partido: ${JSON.stringify(json, null, 2)}
 
-Reglas:
-- Formato vertical 1080x1920, fondo #0a0a1a, texto blanco, rojo #e94560.
-- Incluye: TITULAR (8 palabras), EQUIPOS, MARCADOR, RESUMEN (20 palabras), GANCHO (10 palabras).
-- Usa animaciones CSS: fadeIn, slideUp.
-- Cada elemento con data-duration y data-delay.
-- Duración total: 12s.
+Responde SOLO con un JSON válido, sin markdown, con esta forma exacta:
+{"titular": "máximo 8 palabras, sin mencionar el marcador", "resumen": "máximo 20 palabras sobre por qué importa el resultado", "gancho": "máximo 10 palabras, pregunta táctica para invitar a comentar"}
 
-Responde SOLO con el HTML completo.`;
+No inventes cifras que no estén en los datos.`;
 
-  return await llamarGemini(prompt);
+  const texto = await llamarGemini(prompt);
+  const limpio = texto.replace(/```json|```/g, '').trim();
+  try {
+    return JSON.parse(limpio);
+  } catch (e) {
+    console.log('⚠️ Gemini no devolvió JSON válido, usando textos por defecto:', texto);
+    return {
+      titular: `${json.local} vs ${json.visitante}`,
+      resumen: `${json.ganador === 'Empate' ? 'Partido terminado en empate' : json.ganador + ' se quedó con la victoria'}.`,
+      gancho: '¿Qué opinas de este resultado?',
+    };
+  }
+}
+
+// El HTML lo arma el código, no Gemini — el marcador y los nombres son datos exactos, no texto generado.
+function construirHTML(json, textos) {
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      margin: 0;
+      background: #0a0a1a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-family: Arial, sans-serif;
+      color: white;
+      flex-direction: column;
+      padding: 20px;
+    }
+    .titular { font-size: 38px; font-weight: bold; color: #e94560; text-align: center; animation: fadeIn 1s ease-out; }
+    .equipos { display: flex; align-items: center; gap: 30px; margin: 20px 0; font-size: 36px; font-weight: bold; }
+    .marcador { font-size: 52px; color: #e94560; font-weight: bold; }
+    .resumen { font-size: 22px; color: #ccd6f6; text-align: center; max-width: 800px; animation: fadeIn 2s ease-out; }
+    .gancho { font-size: 26px; color: #e94560; font-weight: bold; text-align: center; margin-top: 20px; animation: fadeIn 2.5s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+  <div class="titular" data-duration="2s">${textos.titular}</div>
+  <div class="equipos" data-delay="1s" data-duration="2s">
+    <span>${json.local.toUpperCase()}</span>
+    <span class="marcador">${json.marcadorLocal} - ${json.marcadorVisitante}</span>
+    <span>${json.visitante.toUpperCase()}</span>
+  </div>
+  <div class="resumen" data-delay="2.5s" data-duration="3s">${textos.resumen}</div>
+  <div class="gancho" data-delay="5s" data-duration="2s">${textos.gancho}</div>
+</body>
+</html>`;
 }
 
 async function main() {
-  console.log('🚀 Generando HTML con Gemini...');
+  console.log('🚀 Generando textos con Gemini y armando HTML...');
   const partidos = await traerPartidosDelDia();
   if (!partidos.length) {
     console.log('⚠️ No hay partidos');
@@ -153,8 +197,9 @@ async function main() {
   for (const p of partidos) {
     console.log(`📊 ${p.teams.home.name} vs ${p.teams.away.name}`);
     const json = construirJSON(p);
-    const html = await generarHTML(json);
-    resultados.push({ ...json, html });
+    const textos = await generarTextos(json);
+    const html = construirHTML(json, textos);
+    resultados.push({ ...json, ...textos, html });
   }
 
   const dir = config.RUTAS.DATOS;
@@ -164,4 +209,4 @@ async function main() {
 }
 
 if (require.main === module) main();
-module.exports = { generarHTML, construirJSON };
+module.exports = { construirHTML, construirJSON };
