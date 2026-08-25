@@ -18,9 +18,7 @@ jobs:
           node-version: 18
 
       - name: 📦 Instalar dependencias
-        run: |
-          npm install
-          npm install --no-save @remotion/cli
+        run: npm install
 
       - name: 🔑 Configurar variables de entorno
         run: |
@@ -32,11 +30,11 @@ jobs:
           node generar-guion.js
           node generar-radiografia.js
 
-      - name: 🎬 Renderizar video
+      - name: 🎬 Renderizar videos (todos los partidos)
         run: node src/render.js
 
-      - name: 📤 Subir video como artefacto
+      - name: 📤 Subir todos los videos como artefactos
         uses: actions/upload-artifact@v4
         with:
-          name: video-prontosport
-          path: output/video.mp4
+          name: videos-prontosport
+          path: output/*.mp4
