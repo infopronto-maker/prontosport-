@@ -1,58 +1,26 @@
 // ============================================================
-// config.js - Configuración centralizada (FÚTBOL LATINOAMERICANO)
+// config.js - Configuración definitiva
 // ============================================================
 
 module.exports = {
-  // Límites
   MAX_PIEZAS: 5,
   DIAS_BUSQUEDA: 3,
 
-  // EQUIPOS PRIORITARIOS (Latinoamérica)
   EQUIPOS_PRIORITARIOS: [
-    // Argentina
-    'River Plate', 'Boca Juniors', 'Independiente', 'Racing Club', 'San Lorenzo',
-    // Brasil
-    'Flamengo', 'Palmeiras', 'Santos', 'Corinthians', 'São Paulo',
-    'Grêmio', 'Internacional',
-    // Colombia
-    'Atlético Nacional', 'Millonarios', 'Independiente Santa Fe', 'América de Cali',
-    'Junior', 'Deportes Tolima', 'Independiente Medellín', 'Deportivo Cali',
-    // México
-    'Club América', 'Guadalajara', 'Cruz Azul', 'Pumas', 'Monterrey', 'Tigres',
-    // Chile
-    'Colo-Colo', 'Universidad de Chile', 'Universidad Católica',
-    // Uruguay
-    'Peñarol', 'Nacional',
-    // Perú
-    'Universitario', 'Alianza Lima', 'Sporting Cristal',
-    // Ecuador
-    'Barcelona SC', 'Emelec', 'LDU Quito', 'Independiente del Valle',
-    // Paraguay
-    'Olimpia', 'Cerro Porteño', 'Libertad',
-    // Bolivia
-    'Bolívar', 'The Strongest',
-    // Venezuela
-    'Caracas', 'Táchira', 'Zamora',
+    'River Plate', 'Boca Juniors', 'Flamengo', 'Palmeiras',
+    'Nacional', 'Millonarios', 'Santa Fe', 'América de Cali',
+    'Club América', 'Chivas', 'Cruz Azul', 'Pumas'
   ],
 
-  // Ligas objetivo (Latinoamérica)
   LIGAS_OBJETIVO: [
     { busqueda: 'Primera A', pais: 'Colombia' },
     { busqueda: 'Liga Profesional', pais: 'Argentina' },
     { busqueda: 'Serie A', pais: 'Brasil' },
     { busqueda: 'Liga MX', pais: 'Mexico' },
-    { busqueda: 'Primera División', pais: 'Chile' },
-    { busqueda: 'Primera División', pais: 'Uruguay' },
-    { busqueda: 'Liga 1', pais: 'Peru' },
-    { busqueda: 'Serie A', pais: 'Ecuador' },
-    { busqueda: 'Primera División', pais: 'Paraguay' },
-    { busqueda: 'Primera División', pais: 'Bolivia' },
-    { busqueda: 'Primera División', pais: 'Venezuela' },
     { busqueda: 'Libertadores', pais: null },
     { busqueda: 'Sudamericana', pais: null },
   ],
 
-  // Configuración de Gemini
   GEMINI: {
     MODELO: 'gemini-2.5-flash',
     TEMPERATURA: 0.7,
@@ -62,10 +30,14 @@ module.exports = {
     ESPERA_MAX: 180000,
   },
 
-  // Rutas
   RUTAS: {
     DATOS: 'data/',
-    HISTORIAL: 'historial/',
     VIDEO_SALIDA: 'output/',
   },
+
+  SUPABASE: {
+    BUCKET: 'videos',
+    URL: process.env.SUPABASE_URL,
+    KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+  }
 };
