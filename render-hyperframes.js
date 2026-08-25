@@ -1,5 +1,5 @@
 // ============================================================
-// render-hyperframes.js - Renderiza HTML a MP4 con HyperFrames
+// render-hyperframes.js - Renderiza y sube a Supabase
 // ============================================================
 
 const fs = require('fs');
@@ -7,86 +7,64 @@ const path = require('path');
 const { exec } = require('child_process');
 const config = require('./config.js');
 
-async function renderVideo(htmlContent, outputPath) {
-  console.log(`🎬 Renderizando video: ${outputPath}`);
-
-  const tempDir = path.join(__dirname, 'temp');
-  if (!fs.existsSync(tempDir)) {
-    fs.mkdirSync(tempDir, { recursive: true });
-  }
-
-  const tempHtml = path.join(tempDir, 'video.html');
-  fs.writeFileSync(tempHtml, htmlContent);
-
+function renderVideo(htmlContent, outputPath) {
   return new Promise((resolve, reject) => {
+    const tempHtml = path.join(__dirname, 'temp.html');
+    fs.writeFileSync(tempHtml, htmlContent);
     const cmd = `npx hyperframes render ${tempHtml} -o ${outputPath}`;
-    console.log(`   ▶️ Ejecutando: ${cmd}`);
-
+    console.log(`▶️ ${cmd}`);
     exec(cmd, (error, stdout, stderr) => {
-      if (error) {
-        console.error(`   ❌ Error: ${error.message}`);
-        reject(error);
-        return;
-      }
-      if (stderr) {
-        console.warn(`   ⚠️ Stderr: ${stderr}`);
-      }
-      if (stdout) {
-        console.log(`   📋 Output: ${stdout}`);
-      }
-
       fs.unlinkSync(tempHtml);
-      console.log(`   ✅ Video renderizado: ${outputPath}`);
+      if (error) { reject(error); return; }
+      console.log(`✅ Video: ${outputPath}`);
       resolve(outputPath);
     });
   });
 }
 
-async function renderAllVideos() {
-  console.log('🚀 Iniciando renderizado de todos los partidos con HyperFrames...');
+async function subirSupabase(filePath) {
+  const { createClient } = require('@supabase/supabase-js');
+  const supabase = createClient(config.SUPABASE.URL, config.SUPABASE.KEY);
+  const nombre = path.basename(filePath);
+  const data = fs.readFileSync(filePath);
+  const { error } = await supabase.storage
+    .from(config.SUPABASE.BUCKET)
+    .upload(nombre, data, { contentType: 'video/mp4', upsert: true });
+  if (error) throw error;
+  const { data: { publicUrl } } = supabase.storage
+    .from(config.SUPABASE.BUCKET)
+    .getPublicUrl(nombre);
+  return publicUrl;
+}
 
-  try {
-    const dataPath = path.join(config.RUTAS.DATOS, 'partidos-html.json');
-    if (!fs.existsSync(dataPath)) {
-      console.error('❌ No existe data/partidos-html.json');
-      console.log('   Ejecuta primero: node generar-guion.js');
-      return;
-    }
-
-    const partidos = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
-    if (!partidos.length) {
-      console.log('⚠️ No hay partidos para renderizar');
-      return;
-    }
-
-    console.log(`📊 ${partidos.length} partidos encontrados`);
-
-    const outputDir = config.RUTAS.VIDEO_SALIDA;
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
-    }
-
-    const resultados = [];
-    for (let i = 0; i < partidos.length; i++) {
-      const partido = partidos[i];
-      const outputPath = path.join(outputDir, `video-partido-${i + 1}.mp4`);
-
-      console.log(`\n📹 Partido ${i + 1}/${partidos.length}: ${partido.local} vs ${partido.visitante}`);
-      await renderVideo(partido.html, outputPath);
-      resultados.push(outputPath);
-    }
-
-    console.log(`\n✅ ${resultados.length} videos renderizados exitosamente`);
-    console.log(`   📁 Carpeta: ${outputDir}`);
-
-  } catch (error) {
-    console.error('❌ Error fatal:', error);
-    process.exit(1);
+async function main() {
+  console.log('🚀 Renderizando videos con HyperFrames...');
+  const dataPath = path.join(config.RUTAS.DATOS, 'partidos-html.json');
+  if (!fs.existsSync(dataPath)) {
+    console.error('❌ No existe data/partidos-html.json');
+    return;
   }
+
+  const partidos = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+  if (!partidos.length) { console.log('⚠️ No hay partidos'); return; }
+
+  const outputDir = config.RUTAS.VIDEO_SALIDA;
+  if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
+
+  const urls = [];
+  for (let i = 0; i < partidos.length; i++) {
+    const p = partidos[i];
+    const out = path.join(outputDir, `video-${i+1}.mp4`);
+    console.log(`\n📹 ${p.local} vs ${p.visitante}`);
+    await renderVideo(p.html, out);
+    const url = await subirSupabase(out);
+    urls.push(url);
+    console.log(`🔗 ${url}`);
+  }
+
+  console.log(`\n✅ ${urls.length} videos subidos a Supabase`);
+  fs.writeFileSync('data/urls.json', JSON.stringify(urls, null, 2));
 }
 
-if (require.main === module) {
-  renderAllVideos();
-}
-
-module.exports = { renderVideo, renderAllVideos };
+if (require.main === module) main();
+module.exports = { renderVideo, subirSupabase };
