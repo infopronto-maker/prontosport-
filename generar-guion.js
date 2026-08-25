@@ -1,5 +1,5 @@
 // ============================================================
-// generar-guion.js - Genera contenido con Gemini (VERSIÓN MEJORADA)
+// generar-guion.js - Genera contenido con Gemini (FÚTBOL LATINO)
 // ============================================================
 
 require('dotenv').config();
@@ -7,7 +7,6 @@ const fs = require('fs');
 const path = require('path');
 const config = require('./config.js');
 
-// ---------- CONFIGURACIÓN ----------
 const API_FOOTBALL_KEY = process.env.API_FOOTBALL_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
@@ -44,7 +43,7 @@ async function llamarApiFootball(endpoint, params = {}) {
   return response.json();
 }
 
-// ---------- GEMINI CLIENT (CON RETRY INTELIGENTE) ----------
+// ---------- GEMINI CLIENT ----------
 async function llamarGemini(prompt, intentos = 1) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${config.GEMINI.MODELO}:generateContent?key=${GEMINI_API_KEY}`;
 
@@ -67,7 +66,6 @@ async function llamarGemini(prompt, intentos = 1) {
       return data.candidates[0].content.parts[0].text;
     }
 
-    // Si es error de cuota (429) y no hemos agotado intentos
     if (data.error?.code === 429 && intentos < config.GEMINI.INTENTOS_MAX) {
       const espera = Math.min(
         config.GEMINI.ESPERA_BASE * Math.pow(2, intentos - 1),
@@ -140,18 +138,31 @@ async function traerPartidosDelDia() {
     return true;
   });
 
-  // Priorizar partidos de Colombia
-  const colombia = unicos.filter(p =>
-    p.teams.home.name.toLowerCase().includes('colombia') ||
-    p.teams.away.name.toLowerCase().includes('colombia')
-  );
+  // FILTRO: solo partidos de equipos prioritarios latinoamericanos
+  const filtrados = unicos.filter(p => {
+    const local = p.teams.home.name;
+    const visitante = p.teams.away.name;
+    return config.EQUIPOS_PRIORITARIOS.some(equipo =>
+      local.toLowerCase().includes(equipo.toLowerCase()) ||
+      visitante.toLowerCase().includes(equipo.toLowerCase())
+    );
+  });
 
-  // Priorizar ligas objetivo
-  const prioritarios = unicos.filter(p =>
-    ligasIds.includes(p.league.id) && !colombia.includes(p)
-  );
+  // Si no hay partidos de equipos prioritarios, usar partidos de Colombia y ligas objetivo
+  let seleccionados = filtrados;
+  if (seleccionados.length === 0) {
+    console.log('⚠️ No hay partidos de equipos prioritarios. Usando partidos de Colombia y ligas objetivo.');
+    const colombia = unicos.filter(p =>
+      p.teams.home.name.toLowerCase().includes('colombia') ||
+      p.teams.away.name.toLowerCase().includes('colombia')
+    );
+    const prioritarios = unicos.filter(p =>
+      ligasIds.includes(p.league.id) && !colombia.includes(p)
+    );
+    seleccionados = [...colombia, ...prioritarios];
+  }
 
-  return [...colombia, ...prioritarios].slice(0, config.MAX_PIEZAS);
+  return seleccionados.slice(0, config.MAX_PIEZAS);
 }
 
 function construirJSON(partido) {
@@ -176,43 +187,38 @@ function construirJSON(partido) {
 }
 
 async function generarContenido(json) {
-  const prompt = `Eres el generador de contenido de "Pronto Sport". Conviertes datos de un partido en un guion corto para video de TikTok, tono analítico y serio, sin humor.
-
-REGLAS:
-1. Solo usas los datos del JSON, nunca inventas cifras que no esten ahi.
-2. 80-100 palabras en total.
-3. Estructura: dato del resultado, contexto breve de por que importa, y un gancho de participacion especifico al final (pregunta o invitacion a opinar sobre una decision tactica o el resultado).
-
-INPUT:
+  // PROMPT con enfoque latinoamericano
+  const prompt = `Eres un periodista deportivo especializado en fútbol latinoamericano. Con estos datos:
 ${JSON.stringify(json, null, 2)}
 
-Responde SOLO con el guion, sin titulos ni explicaciones.`;
+Responde en este formato EXACTO (separado por "|"):
+TITULAR: [frase impactante de máximo 8 palabras, con emoción]
+RESUMEN: [resumen de máximo 20 palabras, destacando lo más importante]
+GANCHO: [pregunta corta de máximo 10 palabras, que invite a opinar]
 
-  return await llamarGemini(prompt);
-}
+Ejemplos:
+- TITULAR: América 3-1 Chivas | RESUMEN: El América domina el clásico y se acerca al título. | GANCHO: ¿Justo ganador?
+- TITULAR: River 2-0 Boca | RESUMEN: River fue superior y se llevó el superclásico. | GANCHO: ¿Fue penal?
 
-async function generarGanchoFinal(json) {
-  const prompt = `Basado en este partido, escribe UNA sola pregunta táctica corta (máximo 12 palabras) para invitar a la gente a comentar en un video de TikTok. Tono analítico, no humor. Solo la pregunta, nada más.
+IMPORTANTE: Usa un tono apasionado y cercano, como habla el hincha latinoamericano.`;
 
-INPUT:
-${JSON.stringify(json, null, 2)}`;
+  const respuesta = await llamarGemini(prompt);
 
-  try {
-    return await llamarGemini(prompt);
-  } catch (error) {
-    console.warn('⚠️ No se pudo generar gancho, usando predeterminado');
-    return '¿Qué opinas de este resultado?';
-  }
+  const titular = respuesta.match(/TITULAR:\s*([^|]*)/)?.[1]?.trim() || `${json.local} ${json.resultado} ${json.visitante}`;
+  const resumen = respuesta.match(/RESUMEN:\s*([^|]*)/)?.[1]?.trim() || 'Partido disputado.';
+  const gancho = respuesta.match(/GANCHO:\s*([^|]*)/)?.[1]?.trim() || '¿Qué opinas?';
+
+  return { titular, resumen, gancho };
 }
 
 async function main() {
-  console.log('🚀 Iniciando generación de contenido...');
+  console.log('🚀 Iniciando generación de contenido para fútbol latinoamericano...');
 
   try {
     const partidos = await traerPartidosDelDia();
 
     if (!partidos.length) {
-      console.log('⚠️ No se encontraron partidos en los últimos 3 días.');
+      console.log('⚠️ No se encontraron partidos de equipos latinoamericanos.');
       return;
     }
 
@@ -225,18 +231,18 @@ async function main() {
       console.log(`\n📊 Procesando: ${partido.teams.home.name} vs ${partido.teams.away.name}`);
 
       const json = construirJSON(partido);
-      const guion = await generarContenido(json);
-      console.log(`   📝 Guion generado (${guion.length} caracteres)`);
-
-      const ganchoFinal = await generarGanchoFinal(json);
-      console.log(`   🎯 Gancho: "${ganchoFinal}"`);
+      const contenido = await generarContenido(json);
+      console.log(`   📝 Titular: "${contenido.titular}"`);
+      console.log(`   📝 Resumen: "${contenido.resumen}"`);
+      console.log(`   🎯 Gancho: "${contenido.gancho}"`);
 
       const [marcadorA, marcadorB] = json.resultado.split('-').map(Number);
 
       resultados.push({
         ...json,
-        guion,
-        ganchoFinal,
+        titular: contenido.titular,
+        resumen: contenido.resumen,
+        gancho: contenido.gancho,
       });
 
       datosParaVideo.push({
@@ -247,9 +253,9 @@ async function main() {
         marcadorA,
         marcadorB,
         estadio: json.estadio,
-        ganchoFinal,
-        guion,
-        // Estadísticas se añadirán después (en generar-radiografia.js)
+        titular: contenido.titular,
+        resumen: contenido.resumen,
+        gancho: contenido.gancho,
       });
     }
 
@@ -279,9 +285,8 @@ async function main() {
   }
 }
 
-// Ejecutar solo si se llama directamente
 if (require.main === module) {
   main();
 }
 
-module.exports = { generarContenido, generarGanchoFinal, construirJSON };
+module.exports = { generarContenido, construirJSON };
