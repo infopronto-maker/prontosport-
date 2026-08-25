@@ -1,7 +1,3 @@
-// ============================================================
-// config.js - Configuración definitiva
-// ============================================================
-
 module.exports = {
   MAX_PIEZAS: 5,
   DIAS_BUSQUEDA: 3,
@@ -24,10 +20,8 @@ module.exports = {
   GEMINI: {
     MODELO: 'gemini-2.5-flash',
     TEMPERATURA: 0.7,
-    MAX_TOKENS: 1000,
+    MAX_TOKENS: 500,
     INTENTOS_MAX: 3,
-    ESPERA_BASE: 60000,
-    ESPERA_MAX: 180000,
   },
 
   RUTAS: {
@@ -36,7 +30,7 @@ module.exports = {
   },
 
   SUPABASE: {
-    BUCKET: 'videos',
+    BUCKET: 'pronto-videos',
     URL: process.env.SUPABASE_URL,
     KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
   }
