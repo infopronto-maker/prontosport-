@@ -1,19 +1,17 @@
 {
   "name": "prontosport",
-  "version": "2.0.0",
-  "description": "Generador automático de videos deportivos con IA",
+  "version": "3.0.0",
+  "description": "Generador automático de videos deportivos con HyperFrames",
   "main": "generar-guion.js",
   "scripts": {
-    "start": "node generar-guion.js && node generar-radiografia.js",
+    "start": "node generar-guion.js && node generar-radiografia.js && node render-hyperframes.js",
     "guion": "node generar-guion.js",
     "radiografia": "node generar-radiografia.js",
-    "video": "node src/render.js"
+    "render": "node render-hyperframes.js"
   },
   "dependencies": {
     "dotenv": "^16.4.5",
-    "remotion": "^4.0.0",
-    "@remotion/bundler": "^4.0.0",
-    "@remotion/renderer": "^4.0.0",
+    "hyperframes": "^0.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
@@ -26,11 +24,11 @@
     "video",
     "ia",
     "gemini",
-    "remotion"
+    "hyperframes"
   ],
   "author": "infopronto-maker",
   "license": "MIT",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.0.0"
   }
 }
