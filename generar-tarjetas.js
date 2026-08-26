@@ -1,11 +1,13 @@
 // ============================================================
-// generar-tarjetas.js - Script principal para generar tarjetas
-// ============================================================
-// Ejecuta: node generar-tarjetas.js
+// generar-tarjetas.js - Script principal
 // ============================================================
 
 require('dotenv').config();
-const { generarTarjetas } = require('./src/predicciones/index.js');
+const path = require('path');
+
+// Ruta absoluta al index.js del módulo
+const moduloPath = path.join(__dirname, 'src', 'predicciones', 'index.js');
+const { generarTarjetas } = require(moduloPath);
 
 async function main() {
   console.log('🚀 Iniciando generación de tarjetas de predicción...');
