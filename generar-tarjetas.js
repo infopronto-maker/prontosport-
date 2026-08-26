@@ -1,13 +1,12 @@
 // ============================================================
-// generar-tarjetas.js - Script principal para generar tarjetas
+// generar-tarjetas.js - Script principal
 // ============================================================
 // Ejecuta: node generar-tarjetas.js
 // ============================================================
 
-require('dotenv').config();
 const { generarTarjetas } = require('./src/src/predicciones/index.js');
 
-// Datos de ejemplo (después se conectarán con la API)
+// Datos de ejemplo
 const partidosEjemplo = [
   {
     local: 'Nacional',
@@ -26,7 +25,6 @@ const partidosEjemplo = [
     goles_local: 1.8,
     goles_visitante: 1.2,
   },
-  // Puedes agregar más partidos aquí para probar
 ];
 
 async function main() {
