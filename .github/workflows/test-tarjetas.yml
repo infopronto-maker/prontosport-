@@ -29,10 +29,13 @@ jobs:
           const API_KEY = process.env.API_FOOTBALL_KEY;
           const BASE_URL = 'https://v3.football.api-sports.io';
 
+          // ============ IDS CORRECTOS DE LIGAS LATAM ============
           const LIGAS_LATAM = [
-            { id: 128, nombre: 'Primera A' },
-            { id: 71, nombre: 'Serie A' },
-            { id: 262, nombre: 'Liga MX' },
+            { id: 239, nombre: 'Liga BetPlay' },       // Colombia
+            { id: 128, nombre: 'Liga Profesional' },    // Argentina
+            { id: 71, nombre: 'Serie A' },             // Brasil
+            { id: 262, nombre: 'Liga MX' },            // México
+            { id: 322, nombre: 'Primera División' },    // Chile
             { id: 13, nombre: 'Copa Libertadores' },
             { id: 14, nombre: 'Copa Sudamericana' },
           ];
@@ -55,27 +58,34 @@ jobs:
                 if (data.response) todos.push(...data.response);
                 await new Promise(r => setTimeout(r, 300));
               } catch (e) {
-                console.error('Error:', e.message);
+                console.error('Error en liga ' + liga.nombre + ':', e.message);
               }
             }
             return todos;
           }
 
+          // ============ GENERADOR DE IMAGEN ============
           function generarImagen(datos) {
             const canvas = createCanvas(1080, 1920);
             const ctx = canvas.getContext('2d');
+
             ctx.fillStyle = '#0a0a1a';
             ctx.fillRect(0, 0, 1080, 1920);
+
             const color = datos.prob_local >= 52 ? '#2ecc71' : '#3498db';
+
             ctx.fillStyle = color;
             ctx.fillRect(0, 0, 1080, 15);
+
             ctx.fillStyle = '#ffffff';
             ctx.font = 'bold 48px Arial';
             ctx.textAlign = 'center';
             ctx.fillText('PREDICCIÓN', 540, 100);
+
             ctx.fillStyle = '#8892b0';
             ctx.font = '36px Arial';
             ctx.fillText(datos.liga || 'Liga', 540, 170);
+
             ctx.fillStyle = '#ffffff';
             ctx.font = 'bold 60px Arial';
             ctx.fillText(datos.local, 340, 350);
@@ -83,13 +93,16 @@ jobs:
             ctx.fillText('VS', 540, 350);
             ctx.fillStyle = '#ffffff';
             ctx.fillText(datos.visitante, 740, 350);
+
             ctx.fillStyle = '#8892b0';
             ctx.font = '32px Arial';
             ctx.fillText(datos.fecha + ' • ' + datos.hora, 540, 450);
+
             ctx.fillStyle = 'rgba(255,255,255,0.05)';
             ctx.beginPath();
             ctx.roundRect(100, 500, 880, 200, 20);
             ctx.fill();
+
             ctx.fillStyle = '#ffffff';
             ctx.font = 'bold 48px Arial';
             ctx.fillText(datos.prediccion || 'Predicción', 540, 580);
@@ -98,9 +111,11 @@ jobs:
             ctx.fillText('Cuota: ' + (datos.cuota || 'N/A'), 540, 640);
             ctx.fillStyle = color;
             ctx.fillText('Valor: ' + (datos.valor || 'N/A'), 540, 700);
+
             ctx.fillStyle = '#ffffff';
             ctx.font = 'bold 32px Arial';
             ctx.fillText('PROBABILIDADES 1X2', 540, 820);
+
             ctx.font = 'bold 28px Arial';
             ctx.fillStyle = '#2ecc71';
             ctx.fillText(datos.prob_local + '%', 340, 880);
@@ -108,54 +123,92 @@ jobs:
             ctx.fillText(datos.prob_empate + '%', 540, 880);
             ctx.fillStyle = '#e74c3c';
             ctx.fillText(datos.prob_visitante + '%', 740, 880);
+
             ctx.fillStyle = '#8892b0';
             ctx.font = '24px Arial';
             ctx.fillText('Local', 340, 920);
             ctx.fillText('Empate', 540, 920);
             ctx.fillText('Visitante', 740, 920);
+
             ctx.fillStyle = '#ffffff';
             ctx.font = 'bold 32px Arial';
             ctx.fillText('PROMEDIOS CLAVE', 540, 1020);
+
             ctx.font = '28px Arial';
             ctx.fillStyle = '#ffffff';
             ctx.fillText('⚽ Córners: ' + datos.corners_local + ' / ' + datos.corners_visitante, 540, 1100);
             ctx.fillText('⚽ Goles: ' + datos.goles_local + ' / ' + datos.goles_visitante, 540, 1160);
+
             ctx.fillStyle = '#8892b0';
             ctx.font = '24px Arial';
             ctx.fillText('¿Qué piensas de este pick? Comparte tu opinión', 540, 1850);
+
             return canvas;
           }
 
+          // ============ DATOS DE PRUEBA (si no hay partidos reales) ============
+          const datosPrueba = {
+            local: 'Nacional',
+            visitante: 'Millonarios',
+            fecha: '27 de agosto de 2026',
+            hora: '8:00 PM',
+            liga: 'Copa BetPlay',
+            prediccion: 'Over 9.5 Córners',
+            cuota: '@1.85',
+            valor: '+15%',
+            prob_local: 52,
+            prob_empate: 28,
+            prob_visitante: 20,
+            corners_local: 5.2,
+            corners_visitante: 4.8,
+            goles_local: 1.8,
+            goles_visitante: 1.2,
+          };
+
           (async function main() {
             console.log('🚀 Generando tarjetas...');
-            const partidos = await obtenerPartidosHoy();
+
+            let partidos = await obtenerPartidosHoy();
+
+            // Si no hay partidos, usar datos de prueba
             if (!partidos || partidos.length === 0) {
-              console.log('⚠️ No hay partidos hoy.');
-              return;
+              console.log('⚠️ No hay partidos reales. Usando datos de prueba.');
+              partidos = [{ fixture: { id: 999, date: new Date().toISOString() }, teams: { home: { name: 'Nacional' }, away: { name: 'Millonarios' } }, league: { name: 'Copa BetPlay' } }];
             }
+
             console.log('📊 ' + partidos.length + ' partidos encontrados.');
+
             const outputDir = './tarjetas';
             if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
+
             for (let i = 0; i < partidos.length; i++) {
               const p = partidos[i];
               console.log('📹 ' + p.teams.home.name + ' vs ' + p.teams.away.name);
-              const datos = {
-                local: p.teams.home.name,
-                visitante: p.teams.away.name,
-                fecha: new Date(p.fixture.date).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }),
-                hora: new Date(p.fixture.date).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }),
-                liga: p.league.name,
-                prediccion: 'Over 9.5 Córners',
-                cuota: '@1.85',
-                valor: '+15%',
-                prob_local: 52,
-                prob_empate: 28,
-                prob_visitante: 20,
-                corners_local: 5.2,
-                corners_visitante: 4.8,
-                goles_local: 1.8,
-                goles_visitante: 1.2,
-              };
+
+              // Si es dato de prueba, usar datos de prueba, si no, construir desde la API
+              let datos;
+              if (p.fixture.id === 999) {
+                datos = datosPrueba;
+              } else {
+                datos = {
+                  local: p.teams.home.name,
+                  visitante: p.teams.away.name,
+                  fecha: new Date(p.fixture.date).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }),
+                  hora: new Date(p.fixture.date).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }),
+                  liga: p.league.name,
+                  prediccion: 'Over 9.5 Córners',
+                  cuota: '@1.85',
+                  valor: '+15%',
+                  prob_local: 52,
+                  prob_empate: 28,
+                  prob_visitante: 20,
+                  corners_local: 5.2,
+                  corners_visitante: 4.8,
+                  goles_local: 1.8,
+                  goles_visitante: 1.2,
+                };
+              }
+
               const canvas = generarImagen(datos);
               const buffer = canvas.toBuffer('image/png');
               const nombre = 'tarjeta-' + p.fixture.id + '-' + Date.now() + '.png';
@@ -163,6 +216,7 @@ jobs:
               fs.writeFileSync(ruta, buffer);
               console.log('✅ ' + nombre);
             }
+
             console.log('✅ ' + partidos.length + ' tarjetas generadas.');
           })().catch(console.error);
           "
