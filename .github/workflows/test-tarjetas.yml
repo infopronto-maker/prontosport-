@@ -8,18 +8,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 18
 
-      - name: Instalar canvas
-        run: npm install canvas
+      - name: Instalar dependencias del sistema para canvas
+        run: sudo apt-get update && sudo apt-get install -y build-essential libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev
+
+      - name: Instalar dependencias Node.js
+        run: npm install canvas axios dotenv
 
       - name: Generar tarjetas
         run: node generar-tarjetas.js
+        env:
+          API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
 
       - name: Subir imágenes generadas
         uses: actions/upload-artifact@v4
         with:
           name: tarjetas-prueba
-          path: src/src/predicciones/output/*.png
+          path: src/predicciones/output/*.png
