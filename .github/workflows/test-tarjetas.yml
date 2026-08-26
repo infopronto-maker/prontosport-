@@ -1,31 +1,176 @@
-name: Probar generación de tarjetas
+name: Generar tarjetas de predicción
 
 on:
   workflow_dispatch:
 
 jobs:
-  test:
+  generate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 18
 
-      - name: Instalar dependencias del sistema para canvas
-        run: sudo apt-get update && sudo apt-get install -y build-essential libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev
-
-      - name: Instalar dependencias Node.js
-        run: npm install canvas axios dotenv
+      - name: Instalar dependencias
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev
+          npm install canvas axios dotenv
 
       - name: Generar tarjetas
-        run: node generar-tarjetas.js
+        run: |
+          node -e "
+          const axios = require('axios');
+          const { createCanvas } = require('canvas');
+          const fs = require('fs');
+          const path = require('path');
+
+          const API_KEY = process.env.API_FOOTBALL_KEY;
+          const BASE_URL = 'https://v3.football.api-sports.io';
+
+          const LIGAS_LATAM = [
+            { id: 128, nombre: 'Primera A' },
+            { id: 71, nombre: 'Serie A' },
+            { id: 262, nombre: 'Liga MX' },
+            { id: 13, nombre: 'Copa Libertadores' },
+            { id: 14, nombre: 'Copa Sudamericana' },
+          ];
+
+          async function llamarApi(endpoint, params = {}) {
+            const url = new URL(BASE_URL + endpoint);
+            Object.entries(params).forEach(([k, v]) => url.searchParams.append(k, v));
+            const res = await axios.get(url.href, {
+              headers: { 'x-apisports-key': API_KEY }
+            });
+            return res.data;
+          }
+
+          async function obtenerPartidosHoy() {
+            const hoy = new Date().toISOString().split('T')[0];
+            const todos = [];
+            for (const liga of LIGAS_LATAM) {
+              try {
+                const data = await llamarApi('/fixtures', { date: hoy, league: liga.id });
+                if (data.response) todos.push(...data.response);
+                await new Promise(r => setTimeout(r, 300));
+              } catch (e) {
+                console.error('Error:', e.message);
+              }
+            }
+            return todos;
+          }
+
+          function generarImagen(datos) {
+            const canvas = createCanvas(1080, 1920);
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#0a0a1a';
+            ctx.fillRect(0, 0, 1080, 1920);
+            const color = datos.prob_local >= 52 ? '#2ecc71' : '#3498db';
+            ctx.fillStyle = color;
+            ctx.fillRect(0, 0, 1080, 15);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 48px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('PREDICCIÓN', 540, 100);
+            ctx.fillStyle = '#8892b0';
+            ctx.font = '36px Arial';
+            ctx.fillText(datos.liga || 'Liga', 540, 170);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 60px Arial';
+            ctx.fillText(datos.local, 340, 350);
+            ctx.fillStyle = color;
+            ctx.fillText('VS', 540, 350);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText(datos.visitante, 740, 350);
+            ctx.fillStyle = '#8892b0';
+            ctx.font = '32px Arial';
+            ctx.fillText(datos.fecha + ' • ' + datos.hora, 540, 450);
+            ctx.fillStyle = 'rgba(255,255,255,0.05)';
+            ctx.beginPath();
+            ctx.roundRect(100, 500, 880, 200, 20);
+            ctx.fill();
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 48px Arial';
+            ctx.fillText(datos.prediccion || 'Predicción', 540, 580);
+            ctx.fillStyle = '#e94560';
+            ctx.font = '36px Arial';
+            ctx.fillText('Cuota: ' + (datos.cuota || 'N/A'), 540, 640);
+            ctx.fillStyle = color;
+            ctx.fillText('Valor: ' + (datos.valor || 'N/A'), 540, 700);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 32px Arial';
+            ctx.fillText('PROBABILIDADES 1X2', 540, 820);
+            ctx.font = 'bold 28px Arial';
+            ctx.fillStyle = '#2ecc71';
+            ctx.fillText(datos.prob_local + '%', 340, 880);
+            ctx.fillStyle = '#f1c40f';
+            ctx.fillText(datos.prob_empate + '%', 540, 880);
+            ctx.fillStyle = '#e74c3c';
+            ctx.fillText(datos.prob_visitante + '%', 740, 880);
+            ctx.fillStyle = '#8892b0';
+            ctx.font = '24px Arial';
+            ctx.fillText('Local', 340, 920);
+            ctx.fillText('Empate', 540, 920);
+            ctx.fillText('Visitante', 740, 920);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 32px Arial';
+            ctx.fillText('PROMEDIOS CLAVE', 540, 1020);
+            ctx.font = '28px Arial';
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText('⚽ Córners: ' + datos.corners_local + ' / ' + datos.corners_visitante, 540, 1100);
+            ctx.fillText('⚽ Goles: ' + datos.goles_local + ' / ' + datos.goles_visitante, 540, 1160);
+            ctx.fillStyle = '#8892b0';
+            ctx.font = '24px Arial';
+            ctx.fillText('¿Qué piensas de este pick? Comparte tu opinión', 540, 1850);
+            return canvas;
+          }
+
+          (async function main() {
+            console.log('🚀 Generando tarjetas...');
+            const partidos = await obtenerPartidosHoy();
+            if (!partidos || partidos.length === 0) {
+              console.log('⚠️ No hay partidos hoy.');
+              return;
+            }
+            console.log('📊 ' + partidos.length + ' partidos encontrados.');
+            const outputDir = './tarjetas';
+            if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
+            for (let i = 0; i < partidos.length; i++) {
+              const p = partidos[i];
+              console.log('📹 ' + p.teams.home.name + ' vs ' + p.teams.away.name);
+              const datos = {
+                local: p.teams.home.name,
+                visitante: p.teams.away.name,
+                fecha: new Date(p.fixture.date).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }),
+                hora: new Date(p.fixture.date).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }),
+                liga: p.league.name,
+                prediccion: 'Over 9.5 Córners',
+                cuota: '@1.85',
+                valor: '+15%',
+                prob_local: 52,
+                prob_empate: 28,
+                prob_visitante: 20,
+                corners_local: 5.2,
+                corners_visitante: 4.8,
+                goles_local: 1.8,
+                goles_visitante: 1.2,
+              };
+              const canvas = generarImagen(datos);
+              const buffer = canvas.toBuffer('image/png');
+              const nombre = 'tarjeta-' + p.fixture.id + '-' + Date.now() + '.png';
+              const ruta = path.join(outputDir, nombre);
+              fs.writeFileSync(ruta, buffer);
+              console.log('✅ ' + nombre);
+            }
+            console.log('✅ ' + partidos.length + ' tarjetas generadas.');
+          })().catch(console.error);
+          "
         env:
           API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
 
-      - name: Subir imágenes generadas
+      - name: Subir imágenes
         uses: actions/upload-artifact@v4
         with:
-          name: tarjetas-prueba
-          path: src/predicciones/output/*.png
+          name: tarjetas
+          path: tarjetas/*.png
