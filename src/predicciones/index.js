@@ -5,17 +5,15 @@
 // ============================================================
 
 const path = require('path');
-const fs = require('fs');
 
-// Importaciones con ruta absoluta usando __dirname
-const { 
-  traerPartidosDeHoy, 
-  obtenerPrediccion, 
-  obtenerCuotas, 
-  obtenerBajas 
-} = require(path.join(__dirname, 'utils/api.js'));
-const { formatearDatosParaTarjeta } = require(path.join(__dirname, 'utils/calculos.js'));
-const { generarImagen } = require(path.join(__dirname, 'utils/render.js'));
+// Todas las rutas usando __dirname
+const api = require(path.join(__dirname, 'utils', 'api.js'));
+const calculos = require(path.join(__dirname, 'utils', 'calculos.js'));
+const render = require(path.join(__dirname, 'utils', 'render.js'));
+
+const { traerPartidosDeHoy, obtenerPrediccion, obtenerCuotas, obtenerBajas } = api;
+const { formatearDatosParaTarjeta } = calculos;
+const { generarImagen } = render;
 
 async function generarTarjetas() {
   console.log('🚀 Iniciando generación de tarjetas de predicción...');
